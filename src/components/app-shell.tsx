@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   List,
   Users,
+  CalendarPlus,
 } from 'lucide-react';
 
 import {
@@ -26,6 +27,7 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/appointments', icon: CalendarPlus, label: 'Atendimentos' },
   { href: '/clients', icon: Users, label: 'Clientes' },
   { href: '/renewals', icon: BellRing, label: 'Renovações' },
   { href: '/services', icon: List, label: 'Serviços' },
