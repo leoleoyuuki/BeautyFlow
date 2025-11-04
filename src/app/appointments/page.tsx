@@ -38,6 +38,7 @@ export default function AppointmentsPage() {
   const { firestore, user } = useFirebase();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addClientDialogOpen, setAddClientDialogOpen] = useState(false);
 
   const initialNewAppointmentState = {
     clientId: '',
@@ -53,6 +54,7 @@ export default function AppointmentsPage() {
     validityPeriodMonths: string;
   }>(initialNewAppointmentState);
 
+  const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   const appointmentsCollection = useMemoFirebase(() => {
@@ -91,6 +93,24 @@ export default function AppointmentsPage() {
     setNewAppointment(initialNewAppointmentState);
     setAddDialogOpen(false);
   };
+  
+  const handleAddClient = () => {
+    if (!clientsCollection || !newClient.name) return;
+    const clientToAdd = {
+      name: newClient.name,
+      phoneNumber: newClient.phoneNumber,
+      professionalId: user!.uid,
+      createdAt: new Date().toISOString(),
+    };
+    addDocumentNonBlocking(clientsCollection, clientToAdd)
+      .then((docRef) => {
+        if(docRef) {
+            setNewAppointment(prev => ({...prev, clientId: docRef.id}));
+        }
+      });
+    setNewClient({ name: '', phoneNumber: '' });
+    setAddClientDialogOpen(false);
+  };
 
   const handleUpdateAppointment = () => {
     if (!appointmentsCollection || !editingAppointment) return;
@@ -99,10 +119,9 @@ export default function AppointmentsPage() {
 
     const selectedService = services?.find(s => s.id === editingAppointment.serviceId);
     
-    // Ensure the date is in the correct format
     const appointmentDate = typeof editingAppointment.appointmentDate === 'string' 
         ? editingAppointment.appointmentDate 
-        : (editingAppointment.appointmentDate as Date).toISOString();
+        : (editingAppointment.appointmentDate as Date)?.toISOString();
 
     const appointmentToUpdate = {
       ...editingAppointment,
@@ -157,21 +176,64 @@ export default function AppointmentsPage() {
                 <Label htmlFor="client" className="text-right">
                   Cliente
                 </Label>
-                <Select
-                  value={newAppointment.clientId}
-                  onValueChange={(value) => setNewAppointment({ ...newAppointment, clientId: value })}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients?.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="col-span-3 flex items-center gap-2">
+                    <Select
+                    value={newAppointment.clientId}
+                    onValueChange={(value) => setNewAppointment({ ...newAppointment, clientId: value })}
+                    >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {clients?.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <Dialog open={addClientDialogOpen} onOpenChange={setAddClientDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <PlusCircle className="h-4 w-4" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Adicionar Novo Cliente</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="new-client-name" className="text-right">
+                                Nome
+                                </Label>
+                                <Input
+                                id="new-client-name"
+                                value={newClient.name}
+                                onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
+                                className="col-span-3"
+                                placeholder="Nome completo"
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="new-client-phone" className="text-right">
+                                Telefone
+                                </Label>
+                                <Input
+                                id="new-client-phone"
+                                value={newClient.phoneNumber}
+                                onChange={(e) => setNewClient({ ...newClient, phoneNumber: e.target.value })}
+                                className="col-span-3"
+                                placeholder="5511987654321"
+                                />
+                            </div>
+                            </div>
+                            <DialogFooter>
+                            <Button onClick={handleAddClient}>Salvar Cliente</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="service" className="text-right">
@@ -312,7 +374,7 @@ export default function AppointmentsPage() {
                     <PopoverContent className="w-auto p-0">
                         <Calendar
                         mode="single"
-                        selected={new Date(editingAppointment.appointmentDate)}
+                        selected={editingAppointment.appointmentDate ? new Date(editingAppointment.appointmentDate) : undefined}
                         onSelect={(date) => setEditingAppointment({ ...editingAppointment, appointmentDate: date as any })}
                         initialFocus
                         />
@@ -327,7 +389,7 @@ export default function AppointmentsPage() {
                     id="edit-validity"
                     type="number"
                     value={editingAppointment.validityPeriodMonths}
-                    onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: e.target.value as any })}
+                    onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: e.target.valueAsNumber as any })}
                     className="col-span-3"
                 />
               </div>
