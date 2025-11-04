@@ -5,7 +5,7 @@ import { Bar, BarChart, Line, LineChart, Pie, PieChart as RechartsPieChart, Resp
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { formatCurrency } from '@/lib/utils';
-import { subMonths, format, isWithinInterval, startOfMonth } from 'date-fns';
+import { subMonths, format, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Appointment, Client, Service } from '@/lib/types';
 
@@ -16,11 +16,11 @@ interface RevenueChartProps {
 
 export function RevenueChart({ isRevenueVisible, appointments }: RevenueChartProps) {
   const chartData = useMemo(() => {
-    const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
+    const months = Array.from({ length: 6 }, (_, i) => startOfMonth(subMonths(new Date(), 5 - i)));
     return months.map(monthStart => {
-      const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+      const monthEnd = endOfMonth(monthStart);
       const monthlyRevenue = appointments
-        .filter(p => isWithinInterval(new Date(p.appointmentDate), { start: monthStart, end: monthEnd }))
+        .filter(p => p.appointmentDate && isWithinInterval(new Date(p.appointmentDate), { start: monthStart, end: monthEnd }))
         .reduce((sum, p) => sum + (p.price || 0), 0);
       return {
         month: format(monthStart, 'MMM', { locale: ptBR }),
