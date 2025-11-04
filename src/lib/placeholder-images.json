@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-1",
+      "description": "A serene beauty salon interior",
+      "imageUrl": "https://images.unsplash.com/photo-1695527081874-b674c46f40fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzYWxvbiUyMGludGVyaW9yfGVufDB8fHx8MTc2MjE5OTU4Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "salon interior"
+    },
+    {
+      "id": "service-manicure",
+      "description": "A close-up of a professional manicure",
+      "imageUrl": "https://images.unsplash.com/photo-1624032545250-b1dc5c7ac61b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtYW5pY3VyZSUyMG5haWxzfGVufDB8fHx8MTc2MjI4NzI0NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "manicure nails"
+    },
+    {
+      "id": "service-facial",
+      "description": "A person receiving a relaxing facial treatment",
+      "imageUrl": "https://images.unsplash.com/photo-1552693673-1bf958298935?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmYWNpYWwlMjB0cmVhdG1lbnR8ZW58MHx8fHwxNzYyMjMwNTAzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "facial treatment"
+    },
+    {
+      "id": "service-hair",
+      "description": "A stylist working on a client's hair",
+      "imageUrl": "https://images.unsplash.com/photo-1560869713-7d0a29430803?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxoYWlyJTIwc3R5bGluZ3xlbnwwfHx8fDE3NjIyMzM3NDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "hair styling"
+    },
+    {
+      "id": "service-lashes",
+      "description": "A close-up of eyelash extensions",
+      "imageUrl": "https://images.unsplash.com/photo-1674049406467-824ea37c7184?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxleWVsYXNoJTIwZXh0ZW5zaW9uc3xlbnwwfHx8fDE3NjIyODQwNTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "eyelash extensions"
+    },
+    {
+      "id": "avatar-1",
+      "description": "Avatar for a female client",
+      "imageUrl": "https://images.unsplash.com/photo-1557053910-d9eadeed1c58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc2MjI0NDMxOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "avatar-2",
+      "description": "Avatar for another female client",
+      "imageUrl": "https://images.unsplash.com/photo-1598625873873-52f9aefd7d9d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzYyMTkwMjI2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "avatar-3",
+      "description": "Avatar for a third female client",
+      "imageUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMGZhY2V8ZW58MHx8fHwxNzYyMjA5OTk1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman face"
+    }
+  ]
 }
