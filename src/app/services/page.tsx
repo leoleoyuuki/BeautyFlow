@@ -47,7 +47,7 @@ export default function ServicesPage() {
     if (!servicesCollection || !newService.name || !newService.price) return;
     const serviceToAdd = {
       ...newService,
-      price: parseFloat(newService.price),
+      price: parseFloat(newService.price) || 0,
       professionalId: user!.uid,
     };
     addDocumentNonBlocking(servicesCollection, serviceToAdd);
@@ -61,7 +61,7 @@ export default function ServicesPage() {
     const { id, ...serviceData } = editingService;
     const updatedData = {
         ...serviceData,
-        price: typeof serviceData.price === 'string' ? parseFloat(serviceData.price) : serviceData.price
+        price: parseFloat(String(serviceData.price)) || 0
     };
     updateDocumentNonBlocking(serviceDocRef, updatedData);
     setEditingService(null);
@@ -181,7 +181,7 @@ export default function ServicesPage() {
                     id="edit-price"
                     type="number"
                     value={editingService.price}
-                    onChange={(e) => setEditingService({ ...editingService, price: Number(e.target.value) })}
+                    onChange={(e) => setEditingService({ ...editingService, price: e.target.value as any })}
                     className="col-span-3"
                   />
                 </div>
