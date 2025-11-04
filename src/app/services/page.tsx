@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlusCircle } from 'lucide-react';
 import type { Service } from '@/lib/types';
-import { useFirebase, useCollection } from '@/firebase';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
@@ -33,7 +33,7 @@ export default function ServicesPage() {
   const [open, setOpen] = useState(false);
   const [newService, setNewService] = useState({ name: '', description: '', price: '' });
 
-  const servicesCollection = useMemo(() => {
+  const servicesCollection = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'professionals', user.uid, 'services');
   }, [firestore, user]);

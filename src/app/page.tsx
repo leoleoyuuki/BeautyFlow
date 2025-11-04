@@ -10,7 +10,7 @@ import {
 } from '@/components/dashboard/charts';
 import { StatsCards } from '@/components/dashboard/stats-cards';
 import { UpcomingRenewals } from '@/components/dashboard/upcoming-renewals';
-import { useFirebase, useCollection } from '@/firebase';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Appointment, Client, Service } from '@/lib/types';
 
@@ -19,17 +19,17 @@ export default function DashboardPage() {
   const [isRevenueVisible, setIsRevenueVisible] = useState(true);
   const { firestore, user } = useFirebase();
 
-  const appointmentsCollection = useMemo(() => {
+  const appointmentsCollection = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'professionals', user.uid, 'appointments');
   }, [firestore, user]);
 
-  const clientsCollection = useMemo(() => {
+  const clientsCollection = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'professionals', user.uid, 'clients');
   }, [firestore, user]);
 
-  const servicesCollection = useMemo(() => {
+  const servicesCollection = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'professionals', user.uid, 'services');
   }, [firestore, user]);

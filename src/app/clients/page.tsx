@@ -29,6 +29,7 @@ import { useFirebase } from '@/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, doc, addDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useMemoFirebase } from '@/firebase/provider';
 
 
 export default function ClientsPage() {
@@ -36,7 +37,7 @@ export default function ClientsPage() {
   const [open, setOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
 
-  const clientsCollection = useMemo(() => {
+  const clientsCollection = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'professionals', user.uid, 'clients');
   }, [firestore, user]);
@@ -49,6 +50,7 @@ export default function ClientsPage() {
       name: newClient.name,
       phoneNumber: newClient.phoneNumber,
       professionalId: user!.uid,
+      createdAt: new Date().toISOString(),
     };
     addDocumentNonBlocking(clientsCollection, clientToAdd);
     setNewClient({ name: '', phoneNumber: '' });
