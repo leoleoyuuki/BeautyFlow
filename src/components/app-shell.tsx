@@ -9,6 +9,7 @@ import {
   Users,
   CalendarPlus,
   LogOut,
+  PanelLeft,
 } from 'lucide-react';
 
 import {
@@ -26,7 +27,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Logo } from './icons/logo';
-import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
@@ -40,8 +40,7 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { auth, user, isUserLoading } = useFirebase();
-  const router = useRouter();
+  const { auth, isUserLoading } = useFirebase();
 
   if (isUserLoading) {
     return (
@@ -49,11 +48,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="text-2xl font-bold">Carregando...</div>
         </div>
     );
-  }
-
-  if (!user) {
-    router.push('/login');
-    return null;
   }
   
   const handleSignOut = () => {

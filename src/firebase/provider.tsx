@@ -75,11 +75,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       (firebaseUser) => {
         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-        if (!firebaseUser && pathname !== '/login') {
-          router.push('/login');
-        } else if (firebaseUser && pathname === '/login') {
-          router.push('/');
-        }
       },
       (error) => {
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
@@ -87,7 +82,25 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
     return () => unsubscribe();
-  }, [auth, pathname, router]);
+  }, [auth]);
+
+  useEffect(() => {
+    // This effect handles redirection based on auth state and current path.
+    // It runs after the initial auth state has been determined.
+    if (userAuthState.isUserLoading) {
+      return; // Do nothing while loading
+    }
+    
+    const isUserLoggedIn = !!userAuthState.user;
+    const isLoginPage = pathname === '/login';
+
+    if (!isUserLoggedIn && !isLoginPage) {
+      router.push('/login');
+    } else if (isUserLoggedIn && isLoginPage) {
+      router.push('/');
+    }
+
+  }, [userAuthState.user, userAuthState.isUserLoading, pathname, router]);
 
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
