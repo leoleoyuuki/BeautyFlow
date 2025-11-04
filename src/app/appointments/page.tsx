@@ -119,7 +119,7 @@ export default function AppointmentsPage() {
     if (!servicesCollection || !newService.name || !newService.price) return;
     const serviceToAdd = {
       ...newService,
-      price: parseFloat(newService.price),
+      price: parseFloat(newService.price.replace(',', '.')) || 0,
       professionalId: user!.uid,
     };
     addDocumentNonBlocking(servicesCollection, serviceToAdd)
@@ -316,11 +316,11 @@ export default function AppointmentsPage() {
                                     </Label>
                                     <Input
                                     id="new-service-price"
-                                    type="number"
+                                    type="text"
                                     value={newService.price}
                                     onChange={(e) => setNewService({ ...newService, price: e.target.value })}
                                     className="col-span-3"
-                                    placeholder="Ex: 25.00"
+                                    placeholder="Ex: 25,00"
                                     />
                                 </div>
                             </div>
