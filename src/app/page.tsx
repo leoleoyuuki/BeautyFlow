@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Eye, EyeOff, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,10 +10,33 @@ import {
 } from '@/components/dashboard/charts';
 import { StatsCards } from '@/components/dashboard/stats-cards';
 import { UpcomingRenewals } from '@/components/dashboard/upcoming-renewals';
-import { procedures, clients, services } from '@/lib/data';
+import { useFirebase, useCollection } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Appointment, Client, Service } from '@/lib/types';
+
 
 export default function DashboardPage() {
   const [isRevenueVisible, setIsRevenueVisible] = useState(true);
+  const { firestore, user } = useFirebase();
+
+  const appointmentsCollection = useMemo(() => {
+    if (!user) return null;
+    return collection(firestore, 'professionals', user.uid, 'appointments');
+  }, [firestore, user]);
+
+  const clientsCollection = useMemo(() => {
+    if (!user) return null;
+    return collection(firestore, 'professionals', user.uid, 'clients');
+  }, [firestore, user]);
+
+  const servicesCollection = useMemo(() => {
+    if (!user) return null;
+    return collection(firestore, 'professionals', user.uid, 'services');
+  }, [firestore, user]);
+
+  const { data: appointments } = useCollection<Appointment>(appointmentsCollection);
+  const { data: clients } = useCollection<Client>(clientsCollection);
+  const { data: services } = useCollection<Service>(servicesCollection);
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
@@ -30,18 +53,18 @@ export default function DashboardPage() {
       </div>
       
       <div className="space-y-4">
-        <StatsCards isRevenueVisible={isRevenueVisible} />
+        <StatsCards isRevenueVisible={isRevenueVisible} appointments={appointments || []} clients={clients || []} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <div className="col-span-4">
-            <RevenueChart isRevenueVisible={isRevenueVisible} />
+            <RevenueChart isRevenueVisible={isRevenueVisible} appointments={appointments || []} />
           </div>
           <div className="col-span-4 lg:col-span-3">
-             <NewClientsChart />
+             <NewClientsChart clients={clients || []} />
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PopularServicesChart />
-            <UpcomingRenewals procedures={procedures} clients={clients} services={services} />
+            <PopularServicesChart appointments={appointments || []} services={services || []} />
+            <UpcomingRenewals appointments={appointments || []} clients={clients || []} services={services || []} />
         </div>
       </div>
     </div>

@@ -1,21 +1,34 @@
+import { Timestamp } from "firebase/firestore";
+
+export type Professional = {
+    id: string;
+    name: string;
+    contactNumber: string;
+};
+
 export type Client = {
-  id: string;
-  name: string;
-  phone: string;
-  joinDate: string; // ISO string for date
+    id: string;
+    professionalId: string;
+    name: string;
+    phoneNumber: string;
+    createdAt: string; 
 };
 
 export type Service = {
-  id: string;
-  name: string;
+    id: string;
+    professionalId: string;
+    name: string;
+    description: string;
+    price: number;
 };
 
-export type Procedure = {
-  id: string;
-  clientId: string;
-  serviceId: string;
-  date: string; // ISO string for date
-  price: number;
-  notes?: string;
-  validityMonths: number;
+export type Appointment = {
+    id: string;
+    clientId: string;
+    serviceId: string;
+    professionalId: string;
+    appointmentDate: string; // ISO string
+    notes?: string;
+    validityPeriodMonths: number;
+    price?: number;
 };

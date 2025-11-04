@@ -9,32 +9,55 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { procedures as allProcedures, clients as allClients, services as allServices } from '@/lib/data';
 import { formatDate } from '@/lib/utils';
 import { addMonths, isAfter, differenceInMonths, differenceInDays } from 'date-fns';
 import { MessageSquare } from 'lucide-react';
-import type { Client, Service, Procedure } from '@/lib/types';
+import type { Client, Service, Appointment } from '@/lib/types';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 export default function RenewalsPage() {
+  const { firestore, user } = useFirebase();
+
+  const appointmentsCollection = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'professionals', user.uid, 'appointments');
+  }, [firestore, user]);
+
+  const clientsCollection = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'professionals', user.uid, 'clients');
+  }, [firestore, user]);
+
+  const servicesCollection = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'professionals', user.uid, 'services');
+  }, [firestore, user]);
+
+  const { data: allAppointments } = useCollection<Appointment>(appointmentsCollection);
+  const { data: allClients } = useCollection<Client>(clientsCollection);
+  const { data: allServices } = useCollection<Service>(servicesCollection);
+
   const renewals = useMemo(() => {
+    if (!allAppointments) return [];
     const now = new Date();
-    return allProcedures
+    return allAppointments
       .map(p => {
-        const renewalDate = addMonths(new Date(p.date), p.validityMonths);
+        const renewalDate = addMonths(new Date(p.appointmentDate), p.validityPeriodMonths);
         const daysLeft = differenceInDays(renewalDate, now);
         return { ...p, renewalDate, daysLeft };
       })
       .filter(p => isAfter(p.renewalDate, now))
       .sort((a, b) => a.renewalDate.getTime() - b.renewalDate.getTime());
-  }, []);
+  }, [allAppointments]);
 
-  const handleWhatsAppRedirect = (client: Client, service: Service, procedure: Procedure) => {
-    const monthsAgo = differenceInMonths(new Date(), new Date(procedure.date));
+  const handleWhatsAppRedirect = (client: Client, service: Service, procedure: Appointment & { renewalDate: Date }) => {
+    const monthsAgo = differenceInMonths(new Date(), new Date(procedure.appointmentDate));
     const message = `Olá ${client.name.split(' ')[0]}! Já faz ${monthsAgo} meses que você fez seu procedimento de ${service.name}. Que tal renovar sua beleza com 5% de desconto? 😊`;
-    const whatsappUrl = `https://wa.me/${client.phone}?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/${client.phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
@@ -65,15 +88,15 @@ export default function RenewalsPage() {
             </TableHeader>
             <TableBody>
               {renewals.map((renewal) => {
-                const client = allClients.find(c => c.id === renewal.clientId);
-                const service = allServices.find(s => s.id === renewal.serviceId);
+                const client = allClients?.find(c => c.id === renewal.clientId);
+                const service = allServices?.find(s => s.id === renewal.serviceId);
                 if (!client || !service) return null;
 
                 return (
                   <TableRow key={renewal.id}>
                     <TableCell className="font-medium">{client.name}</TableCell>
                     <TableCell>{service.name}</TableCell>
-                    <TableCell>{formatDate(renewal.date)}</TableCell>
+                    <TableCell>{formatDate(renewal.appointmentDate)}</TableCell>
                     <TableCell>{formatDate(renewal.renewalDate.toISOString())}</TableCell>
                     <TableCell>
                       <Badge variant={getBadgeVariant(renewal.daysLeft)}>

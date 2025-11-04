@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -22,23 +22,33 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { services as initialServices } from '@/lib/data';
 import { PlusCircle } from 'lucide-react';
 import type { Service } from '@/lib/types';
+import { useFirebase, useCollection } from '@/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<Service[]>(initialServices);
+  const { firestore, user } = useFirebase();
   const [open, setOpen] = useState(false);
-  const [newServiceName, setNewServiceName] = useState('');
+  const [newService, setNewService] = useState({ name: '', description: '', price: '' });
+
+  const servicesCollection = useMemo(() => {
+    if (!user) return null;
+    return collection(firestore, 'professionals', user.uid, 'services');
+  }, [firestore, user]);
+
+  const { data: services, isLoading } = useCollection<Service>(servicesCollection);
 
   const handleAddService = () => {
-    if (newServiceName.trim()) {
-      const newService: Service = {
-        id: (services.length + 2).toString(),
-        name: newServiceName.trim(),
-      };
-      setServices([...services, newService]);
-      setNewServiceName('');
+    if (newService.name.trim() && servicesCollection) {
+      addDocumentNonBlocking(servicesCollection, {
+        name: newService.name,
+        description: newService.description,
+        price: Number(newService.price),
+        professionalId: user!.uid,
+      });
+      setNewService({ name: '', description: '', price: '' });
       setOpen(false);
     }
   };
@@ -61,7 +71,7 @@ export default function ServicesPage() {
             <DialogHeader>
               <DialogTitle>Adicionar Novo Serviço</DialogTitle>
               <DialogDescription>
-                Digite o nome do novo serviço ou procedimento.
+                Preencha as informações do novo serviço.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -71,10 +81,35 @@ export default function ServicesPage() {
                 </Label>
                 <Input
                   id="service-name"
-                  value={newServiceName}
-                  onChange={(e) => setNewServiceName(e.target.value)}
+                  value={newService.name}
+                  onChange={(e) => setNewService({ ...newService, name: e.target.value })}
                   className="col-span-3"
                   placeholder="Ex: Corte de Cabelo"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="service-description" className="text-right">
+                  Descrição
+                </Label>
+                <Input
+                  id="service-description"
+                  value={newService.description}
+                  onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+                  className="col-span-3"
+                  placeholder="Descrição do serviço"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="service-price" className="text-right">
+                  Preço
+                </Label>
+                <Input
+                  id="service-price"
+                  type="number"
+                  value={newService.price}
+                  onChange={(e) => setNewService({ ...newService, price: e.target.value })}
+                  className="col-span-3"
+                  placeholder="R$ 0,00"
                 />
               </div>
             </div>
@@ -90,12 +125,17 @@ export default function ServicesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome do Serviço</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Preço</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {services.sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
+              {isLoading && <TableRow><TableCell colSpan={3}>Carregando...</TableCell></TableRow>}
+              {services?.sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
                 <TableRow key={service.id}>
                   <TableCell className="font-medium">{service.name}</TableCell>
+                  <TableCell>{service.description}</TableCell>
+                  <TableCell>R$ {service.price.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

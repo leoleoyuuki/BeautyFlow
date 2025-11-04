@@ -4,29 +4,30 @@ import { useMemo } from 'react';
 import { Bar, BarChart, Line, LineChart, Pie, PieChart as RechartsPieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { procedures, clients, services } from '@/lib/data';
 import { formatCurrency } from '@/lib/utils';
-import { subMonths, getMonth, getYear, format, isWithinInterval, startOfMonth } from 'date-fns';
+import { subMonths, format, isWithinInterval, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { Appointment, Client, Service } from '@/lib/types';
 
 interface RevenueChartProps {
   isRevenueVisible: boolean;
+  appointments: Appointment[];
 }
 
-export function RevenueChart({ isRevenueVisible }: RevenueChartProps) {
+export function RevenueChart({ isRevenueVisible, appointments }: RevenueChartProps) {
   const chartData = useMemo(() => {
     const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
     return months.map(monthStart => {
       const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-      const monthlyRevenue = procedures
-        .filter(p => isWithinInterval(new Date(p.date), { start: monthStart, end: monthEnd }))
-        .reduce((sum, p) => sum + p.price, 0);
+      const monthlyRevenue = appointments
+        .filter(p => isWithinInterval(new Date(p.appointmentDate), { start: monthStart, end: monthEnd }))
+        .reduce((sum, p) => sum + (p.price || 0), 0);
       return {
         month: format(monthStart, 'MMM', { locale: ptBR }),
         revenue: monthlyRevenue,
       };
     });
-  }, []);
+  }, [appointments]);
 
   return (
     <Card className="h-full">
@@ -53,20 +54,25 @@ export function RevenueChart({ isRevenueVisible }: RevenueChartProps) {
   );
 }
 
-export function NewClientsChart() {
+interface NewClientsChartProps {
+    clients: Client[];
+}
+
+export function NewClientsChart({ clients }: NewClientsChartProps) {
     const chartData = useMemo(() => {
       const months = Array.from({ length: 6 }, (_, i) => startOfMonth(subMonths(new Date(), 5 - i)));
       return months.map(monthStart => {
         const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+        // Assuming client data has a joinDate property
         const newClientsCount = clients
-          .filter(c => isWithinInterval(new Date(c.joinDate), { start: monthStart, end: monthEnd }))
+          .filter(c => c.createdAt && isWithinInterval(new Date(c.createdAt), { start: monthStart, end: monthEnd }))
           .length;
         return {
           month: format(monthStart, 'MMM', { locale: ptBR }),
           newClients: newClientsCount,
         };
       });
-    }, []);
+    }, [clients]);
   
     return (
       <Card className="h-full">
@@ -89,9 +95,15 @@ export function NewClientsChart() {
     );
   }
 
-  export function PopularServicesChart() {
+  interface PopularServicesChartProps {
+    appointments: Appointment[];
+    services: Service[];
+  }
+
+  export function PopularServicesChart({ appointments, services }: PopularServicesChartProps) {
     const chartData = useMemo(() => {
-      const serviceCounts = procedures.reduce((acc, p) => {
+      if (!appointments || !services) return [];
+      const serviceCounts = appointments.reduce((acc, p) => {
         const serviceName = services.find(s => s.id === p.serviceId)?.name || 'Desconhecido';
         acc[serviceName] = (acc[serviceName] || 0) + 1;
         return acc;
@@ -100,7 +112,7 @@ export function NewClientsChart() {
       return Object.entries(serviceCounts)
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
-    }, []);
+    }, [appointments, services]);
 
     const chartConfig = {
         value: { label: 'Vendas' },

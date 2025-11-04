@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -22,26 +22,36 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { clients as initialClients } from '@/lib/data';
 import { formatDate } from '@/lib/utils';
 import { PlusCircle } from 'lucide-react';
 import type { Client } from '@/lib/types';
-import { formatISO } from 'date-fns';
+import { useFirebase } from '@/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { collection, doc, addDoc } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>(initialClients);
+  const { firestore, user } = useFirebase();
   const [open, setOpen] = useState(false);
-  const [newClient, setNewClient] = useState({ name: '', phone: '' });
+  const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
+
+  const clientsCollection = useMemo(() => {
+    if (!user) return null;
+    return collection(firestore, 'professionals', user.uid, 'clients');
+  }, [firestore, user]);
+
+  const { data: clients, isLoading } = useCollection<Client>(clientsCollection);
 
   const handleAddClient = () => {
-    const clientToAdd: Client = {
-      id: (clients.length + 2).toString(),
+    if (!clientsCollection) return;
+    const clientToAdd = {
       name: newClient.name,
-      phone: newClient.phone,
-      joinDate: formatISO(new Date()),
+      phoneNumber: newClient.phoneNumber,
+      professionalId: user!.uid,
     };
-    setClients([...clients, clientToAdd]);
-    setNewClient({ name: '', phone: '' });
+    addDocumentNonBlocking(clientsCollection, clientToAdd);
+    setNewClient({ name: '', phoneNumber: '' });
     setOpen(false);
   };
 
@@ -85,8 +95,8 @@ export default function ClientsPage() {
                 </Label>
                 <Input
                   id="phone"
-                  value={newClient.phone}
-                  onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
+                  value={newClient.phoneNumber}
+                  onChange={(e) => setNewClient({ ...newClient, phoneNumber: e.target.value })}
                   className="col-span-3"
                   placeholder="5511987654321"
                 />
@@ -105,15 +115,14 @@ export default function ClientsPage() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead>Cliente Desde</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
+              {isLoading && <TableRow><TableCell colSpan={2}>Carregando...</TableCell></TableRow>}
+              {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
                 <TableRow key={client.id}>
                   <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.phone}</TableCell>
-                  <TableCell>{formatDate(client.joinDate)}</TableCell>
+                  <TableCell>{client.phoneNumber}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { AppShell } from '@/components/app-shell';
+import { FirebaseClientProvider } from '@/firebase';
 
 const alegreya = Alegreya({
   subsets: ['latin'],
@@ -28,7 +29,9 @@ export default function RootLayout({
           alegreya.variable
         )}
       >
-        <AppShell>{children}</AppShell>
+        <FirebaseClientProvider>
+          <AppShell>{children}</AppShell>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
