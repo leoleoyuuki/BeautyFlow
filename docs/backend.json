@@ -1,0 +1,226 @@
+{
+  "entities": {
+    "Professional": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Professional",
+      "type": "object",
+      "description": "Represents a beauty professional using the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the professional."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the professional."
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "Contact number of the professional."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "contactNumber"
+      ]
+    },
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client of a beauty professional.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the client."
+        },
+        "professionalId": {
+          "type": "string",
+          "description": "Reference to Professional. (Relationship: Professional 1:N Client)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the client."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Phone number of the client."
+        }
+      },
+      "required": [
+        "id",
+        "professionalId",
+        "name",
+        "phoneNumber"
+      ]
+    },
+    "Service": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Service",
+      "type": "object",
+      "description": "Represents a specific beauty service offered by a professional.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the service."
+        },
+        "professionalId": {
+          "type": "string",
+          "description": "Reference to Professional. (Relationship: Professional 1:N Service)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the service."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the service."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the service."
+        }
+      },
+      "required": [
+        "id",
+        "professionalId",
+        "name",
+        "description",
+        "price"
+      ]
+    },
+    "Appointment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Appointment",
+      "type": "object",
+      "description": "Represents an appointment for a beauty service for a specific client.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the appointment."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to Client. (Relationship: Client 1:N Appointment)"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Reference to Service. (Relationship: Service 1:N Appointment)"
+        },
+        "professionalId": {
+          "type": "string",
+          "description": "Reference to Professional. (Relationship: Professional 1:N Appointment)"
+        },
+        "appointmentDate": {
+          "type": "string",
+          "description": "Date and time of the appointment.",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notes related to the appointment."
+        },
+        "validityPeriodMonths": {
+          "type": "number",
+          "description": "The validity period in months for the service received during the appointment."
+        }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "serviceId",
+        "professionalId",
+        "appointmentDate",
+        "validityPeriodMonths"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/professionals/{professionalId}",
+        "definition": {
+          "entityName": "Professional",
+          "schema": {
+            "$ref": "#/backend/entities/Professional"
+          },
+          "description": "Stores professional profiles.  The 'professionalId' is the Firebase Auth UID, ensuring path-based ownership.",
+          "params": [
+            {
+              "name": "professionalId",
+              "description": "The Firebase Auth UID of the professional."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/professionals/{professionalId}/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Stores client information for each professional. Path-based ownership is enforced by the professionalId. Includes denormalized 'professionalId' for authorization independence.",
+          "params": [
+            {
+              "name": "professionalId",
+              "description": "The Firebase Auth UID of the professional."
+            },
+            {
+              "name": "clientId",
+              "description": "Unique identifier for the client."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/professionals/{professionalId}/services/{serviceId}",
+        "definition": {
+          "entityName": "Service",
+          "schema": {
+            "$ref": "#/backend/entities/Service"
+          },
+          "description": "Stores services offered by each professional. Path-based ownership is enforced by the professionalId. Includes denormalized 'professionalId' for authorization independence.",
+          "params": [
+            {
+              "name": "professionalId",
+              "description": "The Firebase Auth UID of the professional."
+            },
+            {
+              "name": "serviceId",
+              "description": "Unique identifier for the service."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/professionals/{professionalId}/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores appointment details for each professional. Path-based ownership is enforced by the professionalId. Includes denormalized 'professionalId' and 'clientId' for authorization independence.",
+          "params": [
+            {
+              "name": "professionalId",
+              "description": "The Firebase Auth UID of the professional."
+            },
+            {
+              "name": "appointmentId",
+              "description": "Unique identifier for the appointment."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the BeautyFlow application's core features: client management, service tracking, appointment scheduling, and renewal reminders. The structure prioritizes authorization independence, clarity, and scalability.  Authorization independence is achieved through path-based ownership and denormalization. Specifically, each client, service, and appointment is stored under the professional's document, which implicitly grants the professional ownership and control. All reads/writes for a professional's data are thus constrained to that professional's scope without needing `get()` calls in security rules. The structure supports the required QAPs by segregating each professional's data into a separate document and collection, ensuring that list operations are secure and efficient."
+  }
+}

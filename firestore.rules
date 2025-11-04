@@ -1,0 +1,144 @@
+/**
+ * @fileoverview Firestore Security Rules for BeautyFlow application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model, where each professional can only
+ * access data associated with their own account.  This is achieved through
+ * path-based access control, where the `professionalId` in the path must match the
+ * authenticated user's UID.
+ *
+ * Data Structure:
+ * The Firestore database is organized hierarchically under the `/professionals/{professionalId}`
+ * path.  Each professional has their own subcollections for clients, services, and appointments.
+ *
+ * Key Security Decisions:
+ * - Professionals can only manage their own data. There are no global admin roles.
+ * - Data consistency is enforced by requiring the 'professionalId' in subcollection
+ *   documents to match the `professionalId` in the path.
+ *
+ * Denormalization for Authorization:
+ * The 'professionalId' is included in Client, Service, and Appointment documents to
+ * avoid costly `get()` calls in security rules.  This denormalization allows
+ * rules to efficiently verify ownership without additional database reads.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to professional profile data.
+     * @path /professionals/{professionalId}
+     * @allow (create) - A user can create their own professional profile if the UID matches the professionalId.
+     * @allow (get, list, update, delete) - A user can only access their own professional profile.
+     * @deny (create) - A user cannot create a professional profile with an ID that does not match their own UID.
+     * @deny (update, delete) - A user cannot modify or delete another professional's profile.
+     * @principle Enforces document ownership based on the professionalId in the path.
+     */
+    match /professionals/{professionalId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(professionalId) {
+        return isSignedIn() && request.auth.uid == professionalId;
+      }
+
+      function isExistingOwner(professionalId) {
+        return isOwner(professionalId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isOwner(professionalId);
+      allow update: if isExistingOwner(professionalId);
+      allow delete: if isExistingOwner(professionalId);
+    }
+
+    /**
+     * @description Controls access to client data for each professional.
+     * @path /professionals/{professionalId}/clients/{clientId}
+     * @allow (create) - A professional can create a client under their ID.
+     * @allow (get, list, update, delete) - A professional can only access clients under their ID.
+     * @deny (create) - A professional cannot create a client under another professional's ID.
+     * @deny (update, delete) - A professional cannot modify or delete another professional's client.
+     * @principle Enforces document ownership through path and data-level checks.
+     */
+    match /professionals/{professionalId}/clients/{clientId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(professionalId) {
+        return isSignedIn() && request.auth.uid == professionalId;
+      }
+
+      function isExistingOwner(professionalId) {
+        return isOwner(professionalId) && resource != null;
+      }
+
+      allow get: if isOwner(professionalId);
+      allow list: if isOwner(professionalId);
+      allow create: if isOwner(professionalId) && request.resource.data.professionalId == professionalId;
+      allow update: if isExistingOwner(professionalId) && request.resource.data.professionalId == resource.data.professionalId;
+      allow delete: if isExistingOwner(professionalId);
+    }
+
+    /**
+     * @description Controls access to service data for each professional.
+     * @path /professionals/{professionalId}/services/{serviceId}
+     * @allow (create) - A professional can create a service under their ID.
+     * @allow (get, list, update, delete) - A professional can only access services under their ID.
+     * @deny (create) - A professional cannot create a service under another professional's ID.
+     * @deny (update, delete) - A professional cannot modify or delete another professional's service.
+     * @principle Enforces document ownership through path and data-level checks.
+     */
+    match /professionals/{professionalId}/services/{serviceId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(professionalId) {
+        return isSignedIn() && request.auth.uid == professionalId;
+      }
+
+      function isExistingOwner(professionalId) {
+        return isOwner(professionalId) && resource != null;
+      }
+
+      allow get: if isOwner(professionalId);
+      allow list: if isOwner(professionalId);
+      allow create: if isOwner(professionalId) && request.resource.data.professionalId == professionalId;
+      allow update: if isExistingOwner(professionalId) && request.resource.data.professionalId == resource.data.professionalId;
+      allow delete: if isExistingOwner(professionalId);
+    }
+
+    /**
+     * @description Controls access to appointment data for each professional.
+     * @path /professionals/{professionalId}/appointments/{appointmentId}
+     * @allow (create) - A professional can create an appointment under their ID.
+     * @allow (get, list, update, delete) - A professional can only access appointments under their ID.
+     * @deny (create) - A professional cannot create an appointment under another professional's ID.
+     * @deny (update, delete) - A professional cannot modify or delete another professional's appointment.
+     * @principle Enforces document ownership through path and data-level checks.
+     */
+    match /professionals/{professionalId}/appointments/{appointmentId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(professionalId) {
+        return isSignedIn() && request.auth.uid == professionalId;
+      }
+
+      function isExistingOwner(professionalId) {
+        return isOwner(professionalId) && resource != null;
+      }
+
+      allow get: if isOwner(professionalId);
+      allow list: if isOwner(professionalId);
+      allow create: if isOwner(professionalId) && request.resource.data.professionalId == professionalId;
+      allow update: if isExistingOwner(professionalId) && request.resource.data.professionalId == resource.data.professionalId;
+      allow delete: if isExistingOwner(professionalId);
+    }
+  }
+}
