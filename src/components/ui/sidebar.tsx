@@ -206,7 +206,7 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <SheetTitle className="sr-only">Menu</SheetTitle>
+            <SheetTitle>Menu</SheetTitle>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>
@@ -263,7 +263,7 @@ Sidebar.displayName = "Sidebar"
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
->(({ className, onClick, ...props }, ref) => {
+>(({ className, onClick, children, ...props }, ref) => {
   const { toggleSidebar } = useSidebar()
 
   return (
@@ -279,8 +279,7 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props}
     >
-      <PanelLeft />
-      <span className="sr-only">Toggle Sidebar</span>
+      {children}
     </Button>
   )
 })
@@ -374,7 +373,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("mt-auto flex flex-col gap-2 p-2", className)}
       {...props}
     />
   )

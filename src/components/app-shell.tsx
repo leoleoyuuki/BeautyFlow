@@ -8,6 +8,7 @@ import {
   List,
   Users,
   CalendarPlus,
+  LogOut,
 } from 'lucide-react';
 
 import {
@@ -20,10 +21,14 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  SidebarFooter,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Logo } from './icons/logo';
 import { cn } from '@/lib/utils';
+import { useFirebase } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -35,6 +40,28 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { auth, user, isUserLoading } = useFirebase();
+  const router = useRouter();
+
+  if (isUserLoading) {
+    return (
+        <div className="flex items-center justify-center h-screen">
+            <div className="text-2xl font-bold">Carregando...</div>
+        </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+  
+  const handleSignOut = () => {
+    if (auth) {
+      auth.signOut();
+    }
+  };
+
 
   return (
     <SidebarProvider>
@@ -68,10 +95,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter>
+            <SidebarSeparator />
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton onClick={handleSignOut} className="justify-start">
+                        <LogOut className="shrink-0" />
+                        <span>Sair</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 md:hidden">
-            <SidebarTrigger/>
+            <SidebarTrigger>
+                <PanelLeft />
+                <span className="sr-only">Toggle Menu</span>
+            </SidebarTrigger>
             <h2 className="text-lg font-bold tracking-tight font-headline">BeautyFlow</h2>
         </header>
         {children}
