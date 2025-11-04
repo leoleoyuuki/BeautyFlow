@@ -35,6 +35,9 @@ export function StatsCards({ isRevenueVisible, appointments, clients }: StatsCar
     return { totalRevenue, revenueLastMonth, totalClients, newClientsLastMonth, upcomingRenewals };
   }, [appointments, clients]);
 
+  const StatDisplay = ({ value, prefix = '', suffix = '' }: { value: number | string, prefix?: string, suffix?: string }) => 
+    isRevenueVisible ? <span>{prefix}{value}{suffix}</span> : <span className="text-lg font-semibold">●●●●</span>;
+
   const RevenueDisplay = ({ value }: { value: number }) => 
     isRevenueVisible ? <span>{formatCurrency(value)}</span> : <span className="text-lg font-semibold">●●●●</span>;
 
@@ -60,8 +63,12 @@ export function StatsCards({ isRevenueVisible, appointments, clients }: StatsCar
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.totalClients}</div>
-          <p className="text-xs text-muted-foreground">+{stats.newClientsLastMonth} no último mês</p>
+          <div className="text-2xl font-bold">
+            <StatDisplay value={stats.totalClients} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            <StatDisplay value={stats.newClientsLastMonth} prefix="+" /> no último mês
+          </p>
         </CardContent>
       </Card>
       <Card>
@@ -70,7 +77,9 @@ export function StatsCards({ isRevenueVisible, appointments, clients }: StatsCar
           <BellRing className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">+{stats.upcomingRenewals}</div>
+          <div className="text-2xl font-bold">
+            <StatDisplay value={stats.upcomingRenewals} prefix="+" />
+          </div>
           <p className="text-xs text-muted-foreground">Nos próximos 2 meses</p>
         </CardContent>
       </Card>
@@ -80,7 +89,9 @@ export function StatsCards({ isRevenueVisible, appointments, clients }: StatsCar
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{appointments.length}</div>
+          <div className="text-2xl font-bold">
+            <StatDisplay value={appointments.length} />
+          </div>
           <p className="text-xs text-muted-foreground">Total de atendimentos</p>
         </CardContent>
       </Card>
