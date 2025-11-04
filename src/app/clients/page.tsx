@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,20 +22,18 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatDate } from '@/lib/utils';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Pencil } from 'lucide-react';
 import type { Client } from '@/lib/types';
-import { useFirebase } from '@/firebase';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { collection, doc, addDoc } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { useMemoFirebase } from '@/firebase/provider';
-
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ClientsPage() {
   const { firestore, user } = useFirebase();
-  const [open, setOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   const clientsCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -54,8 +52,22 @@ export default function ClientsPage() {
     };
     addDocumentNonBlocking(clientsCollection, clientToAdd);
     setNewClient({ name: '', phoneNumber: '' });
-    setOpen(false);
+    setAddDialogOpen(false);
   };
+  
+  const handleUpdateClient = () => {
+    if (!clientsCollection || !editingClient) return;
+    const clientDocRef = doc(clientsCollection, editingClient.id);
+    const { id, ...clientData } = editingClient;
+    updateDocumentNonBlocking(clientDocRef, clientData);
+    setEditingClient(null);
+    setEditDialogOpen(false);
+  }
+
+  const openEditDialog = (client: Client) => {
+    setEditingClient(client);
+    setEditDialogOpen(true);
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
@@ -64,7 +76,7 @@ export default function ClientsPage() {
             <h1 className="text-3xl font-bold tracking-tight font-headline">Clientes</h1>
             <p className="text-muted-foreground">Gerencie sua lista de clientes.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -110,6 +122,48 @@ export default function ClientsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+       {/* Edit Client Dialog */}
+       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Editar Cliente</DialogTitle>
+              <DialogDescription>
+                Atualize as informações do cliente.
+              </DialogDescription>
+            </DialogHeader>
+            {editingClient && (
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-name" className="text-right">
+                    Nome
+                  </Label>
+                  <Input
+                    id="edit-name"
+                    value={editingClient.name}
+                    onChange={(e) => setEditingClient({ ...editingClient, name: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-phone" className="text-right">
+                    Telefone
+                  </Label>
+                  <Input
+                    id="edit-phone"
+                    value={editingClient.phoneNumber}
+                    onChange={(e) => setEditingClient({ ...editingClient, phoneNumber: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="submit" onClick={handleUpdateClient}>Salvar Alterações</Button>
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
       <Card>
         <CardContent className="mt-6">
           <Table>
@@ -117,14 +171,21 @@ export default function ClientsPage() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={2}>Carregando...</TableCell></TableRow>}
+              {isLoading && <TableRow><TableCell colSpan={3}>Carregando...</TableCell></TableRow>}
               {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
                 <TableRow key={client.id}>
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>{client.phoneNumber}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(client)}>
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only">Editar Cliente</span>
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

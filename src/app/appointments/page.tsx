@@ -25,29 +25,35 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, PlusCircle } from 'lucide-react';
+import { CalendarIcon, PlusCircle, Pencil } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import type { Client, Service, Appointment } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, addDoc, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function AppointmentsPage() {
   const { firestore, user } = useFirebase();
-  const [open, setOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const initialNewAppointmentState = {
+    clientId: '',
+    serviceId: '',
+    appointmentDate: new Date(),
+    validityPeriodMonths: '1',
+  };
+
   const [newAppointment, setNewAppointment] = useState<{
     clientId: string;
     serviceId: string;
     appointmentDate: Date | undefined;
     validityPeriodMonths: string;
-  }>({
-    clientId: '',
-    serviceId: '',
-    appointmentDate: new Date(),
-    validityPeriodMonths: '1',
-  });
+  }>(initialNewAppointmentState);
+
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   const appointmentsCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -82,9 +88,43 @@ export default function AppointmentsPage() {
       price: selectedService?.price || 0,
     };
     addDocumentNonBlocking(appointmentsCollection, appointmentToAdd);
-    setNewAppointment({ clientId: '', serviceId: '', appointmentDate: new Date(), validityPeriodMonths: '1' });
-    setOpen(false);
+    setNewAppointment(initialNewAppointmentState);
+    setAddDialogOpen(false);
   };
+
+  const handleUpdateAppointment = () => {
+    if (!appointmentsCollection || !editingAppointment) return;
+
+    const appointmentDocRef = doc(appointmentsCollection, editingAppointment.id);
+
+    const selectedService = services?.find(s => s.id === editingAppointment.serviceId);
+    
+    // Ensure the date is in the correct format
+    const appointmentDate = typeof editingAppointment.appointmentDate === 'string' 
+        ? editingAppointment.appointmentDate 
+        : (editingAppointment.appointmentDate as Date).toISOString();
+
+    const appointmentToUpdate = {
+      ...editingAppointment,
+      appointmentDate,
+      price: selectedService?.price || editingAppointment.price || 0,
+    };
+    
+    const { id, ...appointmentData } = appointmentToUpdate;
+    
+    updateDocumentNonBlocking(appointmentDocRef, appointmentData);
+    setEditingAppointment(null);
+    setEditDialogOpen(false);
+};
+
+
+  const openEditDialog = (appointment: Appointment) => {
+    setEditingAppointment({
+        ...appointment,
+        appointmentDate: new Date(appointment.appointmentDate)
+    } as any);
+    setEditDialogOpen(true);
+  }
   
   const sortedAppointments = useMemo(() => {
     return appointments?.sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()) || [];
@@ -97,7 +137,7 @@ export default function AppointmentsPage() {
             <h1 className="text-3xl font-bold tracking-tight font-headline">Atendimentos</h1>
             <p className="text-muted-foreground">Gerencie os atendimentos realizados.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -199,6 +239,106 @@ export default function AppointmentsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+       {/* Edit Appointment Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Editar Atendimento</DialogTitle>
+              <DialogDescription>
+                Atualize as informações do atendimento.
+              </DialogDescription>
+            </DialogHeader>
+            {editingAppointment && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-client" className="text-right">
+                  Cliente
+                </Label>
+                <Select
+                  value={editingAppointment.clientId}
+                  onValueChange={(value) => setEditingAppointment({ ...editingAppointment, clientId: value })}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients?.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-service" className="text-right">
+                  Serviço
+                </Label>
+                <Select
+                    value={editingAppointment.serviceId}
+                    onValueChange={(value) => setEditingAppointment({ ...editingAppointment, serviceId: value })}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione um serviço" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {services?.map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-date" className="text-right">
+                  Data
+                </Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant={"outline"}
+                        className={cn(
+                            "col-span-3 justify-start text-left font-normal",
+                            !editingAppointment.appointmentDate && "text-muted-foreground"
+                        )}
+                        >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {editingAppointment.appointmentDate ? format(new Date(editingAppointment.appointmentDate), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                        mode="single"
+                        selected={new Date(editingAppointment.appointmentDate)}
+                        onSelect={(date) => setEditingAppointment({ ...editingAppointment, appointmentDate: date as any })}
+                        initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-validity" className="text-right">
+                    Validade (meses)
+                </Label>
+                <Input
+                    id="edit-validity"
+                    type="number"
+                    value={editingAppointment.validityPeriodMonths}
+                    onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: Number(e.target.value) })}
+                    className="col-span-3"
+                />
+              </div>
+            </div>
+            )}
+            <DialogFooter>
+              <Button type="submit" onClick={handleUpdateAppointment}>Salvar Alterações</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+
       <Card>
         <CardContent className="mt-6">
           <Table>
@@ -208,10 +348,11 @@ export default function AppointmentsPage() {
                 <TableHead>Serviço</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Preço</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={4}>Carregando...</TableCell></TableRow>}
+              {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={5}>Carregando...</TableCell></TableRow>}
               {sortedAppointments.map((appointment) => {
                 const client = clients?.find(c => c.id === appointment.clientId);
                 const service = services?.find(s => s.id === appointment.serviceId);
@@ -221,6 +362,12 @@ export default function AppointmentsPage() {
                         <TableCell>{service?.name || '...'}</TableCell>
                         <TableCell>{formatDate(appointment.appointmentDate)}</TableCell>
                         <TableCell>R$ {appointment.price?.toFixed(2) || '0,00'}</TableCell>
+                        <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(appointment)}>
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Editar Atendimento</span>
+                            </Button>
+                        </TableCell>
                     </TableRow>
                 );
               })}

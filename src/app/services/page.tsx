@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -22,17 +22,19 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Pencil } from 'lucide-react';
 import type { Service } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function ServicesPage() {
   const { firestore, user } = useFirebase();
-  const [open, setOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newService, setNewService] = useState({ name: '', description: '', price: '' });
+  const [editingService, setEditingService] = useState<Service | null>(null);
 
   const servicesCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -50,7 +52,25 @@ export default function ServicesPage() {
     };
     addDocumentNonBlocking(servicesCollection, serviceToAdd);
     setNewService({ name: '', description: '', price: '' });
-    setOpen(false);
+    setAddDialogOpen(false);
+  };
+  
+  const handleUpdateService = () => {
+    if (!servicesCollection || !editingService) return;
+    const serviceDocRef = doc(servicesCollection, editingService.id);
+    const { id, ...serviceData } = editingService;
+    const updatedData = {
+        ...serviceData,
+        price: typeof serviceData.price === 'string' ? parseFloat(serviceData.price) : serviceData.price
+    };
+    updateDocumentNonBlocking(serviceDocRef, updatedData);
+    setEditingService(null);
+    setEditDialogOpen(false);
+  };
+
+  const openEditDialog = (service: Service) => {
+    setEditingService(service);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -60,7 +80,7 @@ export default function ServicesPage() {
             <h1 className="text-3xl font-bold tracking-tight font-headline">Serviços</h1>
             <p className="text-muted-foreground">Gerencie os procedimentos que você oferece.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -119,6 +139,60 @@ export default function ServicesPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+       {/* Edit Service Dialog */}
+       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Editar Serviço</DialogTitle>
+              <DialogDescription>
+                Atualize as informações do serviço.
+              </DialogDescription>
+            </DialogHeader>
+            {editingService && (
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-name" className="text-right">
+                    Nome
+                  </Label>
+                  <Input
+                    id="edit-name"
+                    value={editingService.name}
+                    onChange={(e) => setEditingService({ ...editingService, name: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-description" className="text-right">
+                    Descrição
+                  </Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editingService.description}
+                    onChange={(e) => setEditingService({ ...editingService, description: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-price" className="text-right">
+                    Preço
+                  </Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    value={editingService.price}
+                    onChange={(e) => setEditingService({ ...editingService, price: Number(e.target.value) })}
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="submit" onClick={handleUpdateService}>Salvar Alterações</Button>
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
       <Card>
         <CardContent className="mt-6">
           <Table>
@@ -127,15 +201,22 @@ export default function ServicesPage() {
                 <TableHead>Nome do Serviço</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Preço</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={3}>Carregando...</TableCell></TableRow>}
+              {isLoading && <TableRow><TableCell colSpan={4}>Carregando...</TableCell></TableRow>}
               {services?.sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
                 <TableRow key={service.id}>
                   <TableCell className="font-medium">{service.name}</TableCell>
                   <TableCell>{service.description}</TableCell>
                   <TableCell>R$ {service.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(service)}>
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only">Editar Serviço</span>
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
