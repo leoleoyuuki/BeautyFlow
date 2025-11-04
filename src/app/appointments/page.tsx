@@ -84,7 +84,7 @@ export default function AppointmentsPage() {
       serviceId: newAppointment.serviceId,
       professionalId: user!.uid,
       appointmentDate: newAppointment.appointmentDate.toISOString(),
-      validityPeriodMonths: Number(newAppointment.validityPeriodMonths),
+      validityPeriodMonths: Number(newAppointment.validityPeriodMonths) || 0,
       price: selectedService?.price || 0,
     };
     addDocumentNonBlocking(appointmentsCollection, appointmentToAdd);
@@ -107,6 +107,7 @@ export default function AppointmentsPage() {
     const appointmentToUpdate = {
       ...editingAppointment,
       appointmentDate,
+      validityPeriodMonths: Number(editingAppointment.validityPeriodMonths) || 0,
       price: selectedService?.price || editingAppointment.price || 0,
     };
     
@@ -326,7 +327,7 @@ export default function AppointmentsPage() {
                     id="edit-validity"
                     type="number"
                     value={editingAppointment.validityPeriodMonths}
-                    onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: Number(e.target.value) })}
+                    onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: e.target.value as any })}
                     className="col-span-3"
                 />
               </div>
