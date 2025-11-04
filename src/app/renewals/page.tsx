@@ -68,52 +68,54 @@ export default function RenewalsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Renovações</h1>
             <p className="text-muted-foreground">Acompanhe todos os procedimentos com vencimento futuro.</p>
         </div>
       <Card>
         <CardContent className="mt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Procedimento</TableHead>
-                <TableHead>Data do Atendimento</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {renewals.map((renewal) => {
-                const client = allClients?.find(c => c.id === renewal.clientId);
-                const service = allServices?.find(s => s.id === renewal.serviceId);
-                if (!client || !service) return null;
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Procedimento</TableHead>
+                  <TableHead>Data do Atendimento</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {renewals.map((renewal) => {
+                  const client = allClients?.find(c => c.id === renewal.clientId);
+                  const service = allServices?.find(s => s.id === renewal.serviceId);
+                  if (!client || !service) return null;
 
-                return (
-                  <TableRow key={renewal.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>{service.name}</TableCell>
-                    <TableCell>{formatDate(renewal.appointmentDate)}</TableCell>
-                    <TableCell>{formatDate(renewal.renewalDate.toISOString())}</TableCell>
-                    <TableCell>
-                      <Badge variant={getBadgeVariant(renewal.daysLeft)}>
-                        {renewal.daysLeft > 1 ? `Vence em ${renewal.daysLeft} dias` : `Vence em ${renewal.daysLeft} dia`}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleWhatsAppRedirect(client, service, renewal)}>
-                        <MessageSquare className="h-4 w-4 text-green-500" />
-                        <span className="sr-only">Enviar WhatsApp</span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                  return (
+                    <TableRow key={renewal.id}>
+                      <TableCell className="font-medium whitespace-nowrap">{client.name}</TableCell>
+                      <TableCell className="whitespace-nowrap">{service.name}</TableCell>
+                      <TableCell>{formatDate(renewal.appointmentDate)}</TableCell>
+                      <TableCell>{formatDate(renewal.renewalDate.toISOString())}</TableCell>
+                      <TableCell>
+                        <Badge variant={getBadgeVariant(renewal.daysLeft)}>
+                          {renewal.daysLeft > 1 ? `Vence em ${renewal.daysLeft} dias` : `Vence em ${renewal.daysLeft} dia`}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleWhatsAppRedirect(client, service, renewal)}>
+                          <MessageSquare className="h-4 w-4 text-green-500" />
+                          <span className="sr-only">Enviar WhatsApp</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

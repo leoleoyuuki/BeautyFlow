@@ -74,7 +74,7 @@ export default function ServicesPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Serviços</h1>
@@ -195,32 +195,34 @@ export default function ServicesPage() {
 
       <Card>
         <CardContent className="mt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome do Serviço</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Preço</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={4}>Carregando...</TableCell></TableRow>}
-              {services?.sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
-                <TableRow key={service.id}>
-                  <TableCell className="font-medium">{service.name}</TableCell>
-                  <TableCell>{service.description}</TableCell>
-                  <TableCell>R$ {service.price.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(service)}>
-                      <Pencil className="h-4 w-4" />
-                      <span className="sr-only">Editar Serviço</span>
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome do Serviço</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Preço</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {isLoading && <TableRow><TableCell colSpan={4} className="text-center">Carregando...</TableCell></TableRow>}
+                {services?.sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell className="font-medium whitespace-nowrap">{service.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{service.description}</TableCell>
+                    <TableCell>R$ {service.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(service)}>
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Editar Serviço</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

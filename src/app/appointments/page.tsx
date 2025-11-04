@@ -132,7 +132,7 @@ export default function AppointmentsPage() {
   }, [appointments]);
 
   return (
-    <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Atendimentos</h1>
@@ -342,38 +342,40 @@ export default function AppointmentsPage() {
 
       <Card>
         <CardContent className="mt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Serviço</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Preço</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={5}>Carregando...</TableCell></TableRow>}
-              {sortedAppointments.map((appointment) => {
-                const client = clients?.find(c => c.id === appointment.clientId);
-                const service = services?.find(s => s.id === appointment.serviceId);
-                return (
-                    <TableRow key={appointment.id}>
-                        <TableCell className="font-medium">{client?.name || '...'}</TableCell>
-                        <TableCell>{service?.name || '...'}</TableCell>
-                        <TableCell>{formatDate(appointment.appointmentDate)}</TableCell>
-                        <TableCell>R$ {appointment.price?.toFixed(2) || '0,00'}</TableCell>
-                        <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(appointment)}>
-                                <Pencil className="h-4 w-4" />
-                                <span className="sr-only">Editar Atendimento</span>
-                            </Button>
-                        </TableCell>
-                    </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Preço</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={5} className="text-center">Carregando...</TableCell></TableRow>}
+                {sortedAppointments.map((appointment) => {
+                  const client = clients?.find(c => c.id === appointment.clientId);
+                  const service = services?.find(s => s.id === appointment.serviceId);
+                  return (
+                      <TableRow key={appointment.id}>
+                          <TableCell className="font-medium whitespace-nowrap">{client?.name || '...'}</TableCell>
+                          <TableCell className="whitespace-nowrap">{service?.name || '...'}</TableCell>
+                          <TableCell>{formatDate(appointment.appointmentDate)}</TableCell>
+                          <TableCell>R$ {appointment.price?.toFixed(2) || '0,00'}</TableCell>
+                          <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={() => openEditDialog(appointment)}>
+                                  <Pencil className="h-4 w-4" />
+                                  <span className="sr-only">Editar Atendimento</span>
+                              </Button>
+                          </TableCell>
+                      </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

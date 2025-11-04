@@ -70,7 +70,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Clientes</h1>
@@ -166,30 +166,32 @@ export default function ClientsPage() {
 
       <Card>
         <CardContent className="mt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={3}>Carregando...</TableCell></TableRow>}
-              {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.phoneNumber}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(client)}>
-                      <Pencil className="h-4 w-4" />
-                      <span className="sr-only">Editar Cliente</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading && <TableRow><TableCell colSpan={3} className="text-center">Carregando...</TableCell></TableRow>}
+                  {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell className="font-medium whitespace-nowrap">{client.name}</TableCell>
+                      <TableCell>{client.phoneNumber}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(client)}>
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Editar Cliente</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
         </CardContent>
       </Card>
     </div>
