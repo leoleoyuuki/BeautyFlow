@@ -33,12 +33,14 @@ import { collection, addDoc, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function AppointmentsPage() {
   const { firestore, user } = useFirebase();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addClientDialogOpen, setAddClientDialogOpen] = useState(false);
+  const [addServiceDialogOpen, setAddServiceDialogOpen] = useState(false);
 
   const initialNewAppointmentState = {
     clientId: '',
@@ -55,6 +57,7 @@ export default function AppointmentsPage() {
   }>(initialNewAppointmentState);
 
   const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
+  const [newService, setNewService] = useState({ name: '', description: '', price: '' });
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   const appointmentsCollection = useMemoFirebase(() => {
@@ -110,6 +113,23 @@ export default function AppointmentsPage() {
       });
     setNewClient({ name: '', phoneNumber: '' });
     setAddClientDialogOpen(false);
+  };
+
+  const handleAddService = () => {
+    if (!servicesCollection || !newService.name || !newService.price) return;
+    const serviceToAdd = {
+      ...newService,
+      price: parseFloat(newService.price),
+      professionalId: user!.uid,
+    };
+    addDocumentNonBlocking(servicesCollection, serviceToAdd)
+      .then((docRef) => {
+        if(docRef) {
+            setNewAppointment(prev => ({...prev, serviceId: docRef.id}));
+        }
+      });
+    setNewService({ name: '', description: '', price: '' });
+    setAddServiceDialogOpen(false);
   };
 
   const handleUpdateAppointment = () => {
@@ -239,21 +259,77 @@ export default function AppointmentsPage() {
                 <Label htmlFor="service" className="text-right">
                   Serviço
                 </Label>
-                <Select
-                    value={newAppointment.serviceId}
-                    onValueChange={(value) => setNewAppointment({ ...newAppointment, serviceId: value })}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione um serviço" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services?.map((service) => (
-                      <SelectItem key={service.id} value={service.id}>
-                        {service.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="col-span-3 flex items-center gap-2">
+                    <Select
+                        value={newAppointment.serviceId}
+                        onValueChange={(value) => setNewAppointment({ ...newAppointment, serviceId: value })}
+                    >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Selecione um serviço" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {services?.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>
+                            {service.name}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <Dialog open={addServiceDialogOpen} onOpenChange={setAddServiceDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <PlusCircle className="h-4 w-4" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Adicionar Novo Serviço</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="new-service-name" className="text-right">
+                                    Nome
+                                    </Label>
+                                    <Input
+                                    id="new-service-name"
+                                    value={newService.name}
+                                    onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                                    className="col-span-3"
+                                    placeholder="Ex: Manicure"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="new-service-description" className="text-right">
+                                    Descrição
+                                    </Label>
+                                    <Textarea
+                                    id="new-service-description"
+                                    value={newService.description}
+                                    onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+                                    className="col-span-3"
+                                    placeholder="Ex: Cutilagem e esmaltação"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="new-service-price" className="text-right">
+                                    Preço
+                                    </Label>
+                                    <Input
+                                    id="new-service-price"
+                                    type="number"
+                                    value={newService.price}
+                                    onChange={(e) => setNewService({ ...newService, price: e.target.value })}
+                                    className="col-span-3"
+                                    placeholder="Ex: 25.00"
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button onClick={handleAddService}>Salvar Serviço</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="date" className="text-right">
