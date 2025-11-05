@@ -1,8 +1,14 @@
+// As configurações do Firebase foram movidas para variáveis de ambiente.
+// Consulte o arquivo .env.local ou as configurações de hospedagem.
+// É crucial que as variáveis de ambiente do Next.js sejam prefixadas com NEXT_PUBLIC_
+// para que fiquem acessíveis no lado do cliente.
+
 export const firebaseConfig = {
-  "projectId": "studio-1296885963-e59cf",
-  "appId": "1:247222472030:web:46af2f38f11ee0988b93cf",
-  "apiKey": "AIzaSyBvqKNqtmZSygy8tjo0Fi7-QscIP_nzSB4",
-  "authDomain": "studio-1296885963-e59cf.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "247222472030"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
