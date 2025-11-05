@@ -171,7 +171,7 @@ export default function AppointmentsPage() {
   }, [appointments]);
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
       <div className="flex items-center justify-between">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Atendimentos</h1>
@@ -184,7 +184,7 @@ export default function AppointmentsPage() {
               Novo Atendimento
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Adicionar Novo Atendimento</DialogTitle>
               <DialogDescription>
@@ -381,7 +381,7 @@ export default function AppointmentsPage() {
 
        {/* Edit Appointment Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Editar Atendimento</DialogTitle>
               <DialogDescription>
@@ -463,9 +463,9 @@ export default function AppointmentsPage() {
                 </Label>
                 <Input
                     id="edit-validity"
-                    type="number"
+                    type="text"
                     value={editingAppointment.validityPeriodMonths}
-                    onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: e.target.valueAsNumber as any })}
+                    onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: e.target.value as any })}
                     className="col-span-3"
                 />
               </div>

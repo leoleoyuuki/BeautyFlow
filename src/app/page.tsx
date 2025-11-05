@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const { data: services } = useCollection<Service>(servicesCollection);
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Dashboard
@@ -54,11 +54,11 @@ export default function DashboardPage() {
       
       <div className="space-y-4">
         <StatsCards isRevenueVisible={isRevenueVisible} appointments={appointments || []} clients={clients || []} />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <div className="col-span-4">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+          <div className="col-span-1 lg:col-span-4">
             <RevenueChart isRevenueVisible={isRevenueVisible} appointments={appointments || []} />
           </div>
-          <div className="col-span-4 lg:col-span-3">
+          <div className="col-span-1 lg:col-span-3">
              <NewClientsChart clients={clients || []} />
           </div>
         </div>
