@@ -125,10 +125,19 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       return; // Wait until auth state is resolved
     }
 
+    const ADMIN_UID = 'fE4wQQun2zgDr39cwH0AKoOADkT2';
     const isUserLoggedIn = !!userAuthState.user;
+    const isUserAdmin = userAuthState.user?.uid === ADMIN_UID;
     const isLoginPage = pathname === '/login';
     const isActivatePage = pathname === '/activate';
     
+    if (isUserAdmin) {
+        if (isLoginPage || isActivatePage) {
+            router.push('/');
+        }
+        return;
+    }
+
     if (!isUserLoggedIn && !isLoginPage) {
       router.push('/login');
     } else if (isUserLoggedIn && isLoginPage) {
