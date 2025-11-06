@@ -17,6 +17,11 @@
         "contactNumber": {
           "type": "string",
           "description": "Contact number of the professional."
+        },
+        "activationExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp indicating when the professional's account activation expires."
         }
       },
       "required": [
@@ -280,3 +285,4 @@
     "reasoning": "The Firestore data structure is designed to support the BeautyFlow application's core features: client management, service tracking, appointment scheduling, and renewal reminders. The structure prioritizes authorization independence, clarity, and scalability.  Authorization independence is achieved through path-based ownership and denormalization. Specifically, each client, service, and appointment is stored under the professional's document, which implicitly grants the professional ownership and control. All reads/writes for a professional's data are thus constrained to that professional's scope without needing `get()` calls in security rules. The structure supports the required QAPs by segregating each professional's data into a separate document and collection, ensuring that list operations are secure and efficient. A new collection for activation tokens has been added to manage account activations."
   }
 }
+    

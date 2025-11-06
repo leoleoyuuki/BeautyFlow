@@ -4,6 +4,7 @@ export type Professional = {
     id: string;
     name: string;
     contactNumber: string;
+    activationExpiresAt?: string; // ISO string
 };
 
 export type Client = {

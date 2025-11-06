@@ -2,11 +2,13 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, doc, getDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { usePathname, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
+import type { Professional } from '@/lib/types';
+import { isAfter } from 'date-fns';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -19,6 +21,8 @@ interface UserAuthState {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
+  professional: Professional | null;
+  isAccountActive: boolean | null;
 }
 
 export interface FirebaseContextState {
@@ -29,6 +33,8 @@ export interface FirebaseContextState {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
+  professional: Professional | null;
+  isAccountActive: boolean | null;
 }
 
 export interface FirebaseServicesAndUser {
@@ -38,6 +44,8 @@ export interface FirebaseServicesAndUser {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
+  professional: Professional | null;
+  isAccountActive: boolean | null;
 }
 
 export interface UserHookResult {
@@ -58,6 +66,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     user: null,
     isUserLoading: true,
     userError: null,
+    professional: null,
+    isAccountActive: null,
   });
 
   const router = useRouter();
@@ -65,42 +75,71 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   useEffect(() => {
     if (!auth) {
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
+      setUserAuthState(prev => ({ ...prev, isUserLoading: false, userError: new Error("Auth service not provided.") }));
       return;
     }
 
-    setUserAuthState({ user: null, isUserLoading: true, userError: null });
+    setUserAuthState(prev => ({ ...prev, isUserLoading: true }));
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      (firebaseUser) => {
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+      async (firebaseUser) => {
+        if (firebaseUser) {
+          const professionalRef = doc(firestore, 'professionals', firebaseUser.uid);
+          const professionalSnap = await getDoc(professionalRef);
+          
+          if (professionalSnap.exists()) {
+            const professionalData = professionalSnap.data() as Professional;
+            const isActive = professionalData.activationExpiresAt ? isAfter(new Date(professionalData.activationExpiresAt), new Date()) : false;
+            setUserAuthState({
+              user: firebaseUser,
+              isUserLoading: false,
+              userError: null,
+              professional: professionalData,
+              isAccountActive: isActive
+            });
+          } else {
+            // New user, professional profile not created yet, considered inactive
+             setUserAuthState({
+              user: firebaseUser,
+              isUserLoading: false,
+              userError: null,
+              professional: null,
+              isAccountActive: false,
+            });
+          }
+        } else {
+           setUserAuthState({ user: null, isUserLoading: false, userError: null, professional: null, isAccountActive: null });
+        }
       },
       (error) => {
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
+        setUserAuthState({ user: null, isUserLoading: false, userError: error, professional: null, isAccountActive: null });
       }
     );
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, firestore]);
 
   useEffect(() => {
-    // This effect handles redirection based on auth state and current path.
-    // It runs after the initial auth state has been determined.
     if (userAuthState.isUserLoading) {
-      return; // Do nothing while loading
+      return; // Wait until auth state is resolved
     }
-    
+
     const isUserLoggedIn = !!userAuthState.user;
     const isLoginPage = pathname === '/login';
-
+    const isActivatePage = pathname === '/activate';
+    
     if (!isUserLoggedIn && !isLoginPage) {
       router.push('/login');
     } else if (isUserLoggedIn && isLoginPage) {
       router.push('/');
+    } else if (isUserLoggedIn && !userAuthState.isAccountActive && !isActivatePage) {
+      router.push('/activate');
+    } else if (isUserLoggedIn && userAuthState.isAccountActive && isActivatePage) {
+        router.push('/');
     }
 
-  }, [userAuthState.user, userAuthState.isUserLoading, pathname, router]);
+  }, [userAuthState, pathname, router]);
 
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
@@ -109,18 +148,35 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       firebaseApp: servicesAvailable ? firebaseApp : null,
       firestore: servicesAvailable ? firestore : null,
       auth: servicesAvailable ? auth : null,
-      user: userAuthState.user,
-      isUserLoading: userAuthState.isUserLoading,
-      userError: userAuthState.userError,
+      ...userAuthState
     };
   }, [firebaseApp, firestore, auth, userAuthState]);
   
-  const isLoginPage = pathname === '/login';
+  const isAuthPage = pathname === '/login' || pathname === '/activate';
+  
+  // Don't render AppShell on auth pages
+  if (isAuthPage) {
+      return (
+        <FirebaseContext.Provider value={contextValue}>
+            <FirebaseErrorListener />
+            {children}
+        </FirebaseContext.Provider>
+      )
+  }
+
+  // Show loading for main app content until auth is resolved
+  if (userAuthState.isUserLoading) {
+    return (
+        <div className="flex items-center justify-center h-screen">
+            <div className="text-2xl font-bold">Carregando...</div>
+        </div>
+    );
+  }
 
   return (
     <FirebaseContext.Provider value={contextValue}>
       <FirebaseErrorListener />
-      {isLoginPage ? children : <AppShell>{children}</AppShell>}
+      <AppShell>{children}</AppShell>
     </FirebaseContext.Provider>
   );
 };
@@ -143,6 +199,8 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     user: context.user,
     isUserLoading: context.isUserLoading,
     userError: context.userError,
+    professional: context.professional,
+    isAccountActive: context.isAccountActive,
   };
 };
 
