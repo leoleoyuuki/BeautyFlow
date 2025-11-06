@@ -24,11 +24,11 @@ import {
   SidebarTrigger,
   SidebarFooter,
   SidebarSeparator,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Logo } from './icons/logo';
 import { useFirebase } from '@/firebase';
-import { useRouter } from 'next/navigation';
 
 const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -38,9 +38,10 @@ const navItems = [
   { href: '/services', icon: List, label: 'Serviços' },
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function AppShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { auth, isUserLoading } = useFirebase();
+  const { setOpenMobile, isMobile } = useSidebar();
 
   if (isUserLoading) {
     return (
@@ -56,9 +57,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }
+
 
   return (
-    <SidebarProvider>
+    <>
       <Sidebar>
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
@@ -79,6 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   isActive={pathname === item.href}
                   tooltip={item.label}
                   className="justify-start"
+                  onClick={handleLinkClick}
                 >
                   <Link href={item.href}>
                     <item.icon className="shrink-0" />
@@ -111,6 +119,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
         {children}
       </SidebarInset>
-    </SidebarProvider>
+    </>
   );
+}
+
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+    return (
+        <SidebarProvider>
+            <AppShellContent>{children}</AppShellContent>
+        </SidebarProvider>
+    )
 }
