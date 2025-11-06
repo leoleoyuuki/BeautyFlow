@@ -47,7 +47,7 @@ export default function ServicesPage() {
   const { data: services, isLoading } = useCollection<Service>(servicesCollection);
 
   const handleAddService = () => {
-    if (!servicesCollection || !newService.name || !newService.price) return;
+    if (!servicesCollection || !newService.name) return;
     const serviceToAdd = {
       ...newService,
       price: newService.price || 0,
@@ -132,7 +132,6 @@ export default function ServicesPage() {
                     value={newService.price}
                     onValueChange={(value) => setNewService({ ...newService, price: value || 0 })}
                     className="col-span-3"
-                    placeholder="R$ 0,00"
                 />
               </div>
             </div>

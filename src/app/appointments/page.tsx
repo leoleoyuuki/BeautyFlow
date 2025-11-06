@@ -60,7 +60,7 @@ export default function AppointmentsPage() {
   }>(initialNewAppointmentState);
 
   const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
-  const [newService, setNewService] = useState({ name: '', description: '', price: '' });
+  const [newService, setNewService] = useState({ name: '', description: '', price: 0 });
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   const appointmentsCollection = useMemoFirebase(() => {
@@ -119,10 +119,10 @@ export default function AppointmentsPage() {
   };
 
   const handleAddService = () => {
-    if (!servicesCollection || !newService.name || !newService.price) return;
+    if (!servicesCollection || !newService.name) return;
     const serviceToAdd = {
       ...newService,
-      price: parseFloat(newService.price.replace(/\./g, '').replace(',', '.')) || 0,
+      price: newService.price || 0,
       professionalId: user!.uid,
     };
     addDocumentNonBlocking(servicesCollection, serviceToAdd)
@@ -131,7 +131,7 @@ export default function AppointmentsPage() {
             setNewAppointment(prev => ({...prev, serviceId: docRef.id}));
         }
       });
-    setNewService({ name: '', description: '', price: '' });
+    setNewService({ name: '', description: '', price: 0 });
     setAddServiceDialogOpen(false);
   };
 
@@ -328,9 +328,8 @@ export default function AppointmentsPage() {
                                      <CurrencyInput
                                         id="price"
                                         value={newService.price}
-                                        onValueChange={(value) => setNewService({ ...newService, price: value || '' })}
+                                        onValueChange={(value) => setNewService({ ...newService, price: value || 0 })}
                                         className="col-span-3"
-                                        placeholder="R$ 0,00"
                                     />
                                 </div>
                             </div>
@@ -385,7 +384,7 @@ export default function AppointmentsPage() {
                 </Label>
                 <Input
                     id="validity"
-                    type="number"
+                    type="text"
                     value={newAppointment.validityPeriodMonths}
                     onChange={(e) => setNewAppointment({ ...newAppointment, validityPeriodMonths: e.target.value })}
                     className="col-span-3"
