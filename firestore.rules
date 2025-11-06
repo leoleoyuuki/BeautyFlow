@@ -146,8 +146,9 @@ service cloud.firestore {
     /**
      * @description Controls access to activation tokens.
      * @path /activationTokens/{tokenId}
-     * @allow (get, list, create) - Only the admin user can create and view tokens.
-     * @allow (update) - Any authenticated user can update a token (to use it), but only if it hasn't been used before.
+     * @allow (get) - Any authenticated user can check if a token exists.
+     * @allow (list, create) - Only the admin user can create and list tokens.
+     * @allow (update) - Any authenticated user can update a token to use it, but only if it hasn't been used before.
      * @deny (delete) - Tokens cannot be deleted.
      */
     match /activationTokens/{tokenId} {
@@ -160,8 +161,11 @@ service cloud.firestore {
             return isSignedIn() && request.auth.uid == 'fE4wQQun2zgDr39cwH0AKoOADkT2';
         }
         
-        // Allow admin to manage tokens
-        allow get, list, create: if isAdmin();
+        // Allow any signed-in user to read a token document to check its status.
+        allow get: if isSignedIn();
+        
+        // Allow admin to list and create tokens.
+        allow list, create: if isAdmin();
         
         // Allow a user to 'claim' an unused token.
         // - User must be signed in.
