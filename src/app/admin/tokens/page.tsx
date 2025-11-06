@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -56,12 +57,9 @@ export default function TokenGeneratorPage() {
   if (isUserLoading) {
     return <div className="flex h-screen items-center justify-center">Carregando...</div>;
   }
-
+  
   if (!user || user.uid !== ADMIN_UID) {
-    if (typeof window !== 'undefined') {
-        router.push('/');
-    }
-    return <div className="flex h-screen items-center justify-center">Acesso negado.</div>;
+    return <div className="flex h-screen items-center justify-center">Acesso negado. Você será redirecionado.</div>;
   }
 
   const sortedTokens = tokens?.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
