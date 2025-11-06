@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
@@ -19,6 +19,8 @@ export default function ActivatePage() {
     const { toast } = useToast();
     const [token, setToken] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    const whatsappMessage = useMemo(() => encodeURIComponent("Gostaria de adquirir acesso ao BeautyFlow"), []);
 
     const handleActivation = async () => {
         if (!firestore || !user || !token) {
@@ -120,7 +122,7 @@ export default function ActivatePage() {
                         Não possui um código de ativação? Clique abaixo para pedir o seu.
                     </p>
                     <Button variant="link" className="mt-2" asChild>
-                        <a href="https://wa.me/11957211546" target="_blank" rel="noopener noreferrer">
+                        <a href={`https://wa.me/11957211546?text=${whatsappMessage}`} target="_blank" rel="noopener noreferrer">
                             Pedir pelo WhatsApp
                         </a>
                     </Button>
