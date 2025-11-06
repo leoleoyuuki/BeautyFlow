@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Pencil } from 'lucide-react';
+import { PlusCircle, Pencil, Phone } from 'lucide-react';
 import type { Client } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
@@ -70,8 +70,8 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
+      <div className="flex items-center justify-between px-2">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Clientes</h1>
             <p className="text-muted-foreground">Gerencie sua lista de clientes.</p>
@@ -80,7 +80,8 @@ export default function ClientsPage() {
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Novo Cliente
+              <span className="hidden md:inline">Novo Cliente</span>
+              <span className="inline md:hidden">Novo</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -164,36 +165,63 @@ export default function ClientsPage() {
           </DialogContent>
       </Dialog>
 
-      <Card>
-        <CardContent className="mt-6">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && <TableRow><TableCell colSpan={3} className="text-center">Carregando...</TableCell></TableRow>}
-                  {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
-                    <TableRow key={client.id}>
-                      <TableCell className="font-medium whitespace-nowrap">{client.name}</TableCell>
-                      <TableCell>{client.phoneNumber}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(client)}>
-                          <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Editar Cliente</span>
-                        </Button>
-                      </TableCell>
+      {/* Desktop Table */}
+      <div className="hidden md:block">
+        <Card>
+            <CardContent className="mt-6">
+                <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-        </CardContent>
-      </Card>
+                    </TableHeader>
+                    <TableBody>
+                    {isLoading && <TableRow><TableCell colSpan={3} className="text-center">Carregando...</TableCell></TableRow>}
+                    {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
+                        <TableRow key={client.id}>
+                        <TableCell className="font-medium whitespace-nowrap">{client.name}</TableCell>
+                        <TableCell>{client.phoneNumber}</TableCell>
+                        <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(client)}>
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Editar Cliente</span>
+                            </Button>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+                </div>
+            </CardContent>
+        </Card>
+      </div>
+
+       {/* Mobile Cards */}
+       <div className="grid gap-4 md:hidden">
+        {isLoading && <p className="text-center">Carregando...</p>}
+        {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
+            <Card key={client.id}>
+                <CardHeader>
+                    <CardTitle className="flex justify-between items-center text-lg">
+                        <span>{client.name}</span>
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(client)}>
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Editar Cliente</span>
+                        </Button>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                   <div className="flex items-center text-sm text-muted-foreground">
+                        <Phone className="mr-2 h-4 w-4" />
+                        <span>{client.phoneNumber}</span>
+                   </div>
+                </CardContent>
+            </Card>
+        ))}
+       </div>
     </div>
   );
 }

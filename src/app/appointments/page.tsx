@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, PlusCircle, Pencil } from 'lucide-react';
-import { formatDate, cn } from '@/lib/utils';
+import { formatDate, cn, formatCurrency } from '@/lib/utils';
 import type { Client, Service, Appointment } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, doc } from 'firebase/firestore';
@@ -34,6 +34,7 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/no
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
+import { CurrencyInput } from '@/components/ui/currency-input';
 
 export default function AppointmentsPage() {
   const { firestore, user } = useFirebase();
@@ -47,6 +48,7 @@ export default function AppointmentsPage() {
     serviceId: '',
     appointmentDate: new Date(),
     validityPeriodMonths: '1',
+    price: 0,
   };
 
   const [newAppointment, setNewAppointment] = useState<{
@@ -54,6 +56,7 @@ export default function AppointmentsPage() {
     serviceId: string;
     appointmentDate: Date | undefined;
     validityPeriodMonths: string;
+    price: number;
   }>(initialNewAppointmentState);
 
   const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
@@ -90,7 +93,7 @@ export default function AppointmentsPage() {
       professionalId: user!.uid,
       appointmentDate: newAppointment.appointmentDate.toISOString(),
       validityPeriodMonths: Number(newAppointment.validityPeriodMonths) || 0,
-      price: selectedService?.price || 0,
+      price: newAppointment.price || selectedService?.price || 0,
     };
     addDocumentNonBlocking(appointmentsCollection, appointmentToAdd);
     setNewAppointment(initialNewAppointmentState);
@@ -119,7 +122,7 @@ export default function AppointmentsPage() {
     if (!servicesCollection || !newService.name || !newService.price) return;
     const serviceToAdd = {
       ...newService,
-      price: parseFloat(newService.price.replace(',', '.')) || 0,
+      price: parseFloat(newService.price.replace(/\./g, '').replace(',', '.')) || 0,
       professionalId: user!.uid,
     };
     addDocumentNonBlocking(servicesCollection, serviceToAdd)
@@ -147,7 +150,7 @@ export default function AppointmentsPage() {
       ...editingAppointment,
       appointmentDate,
       validityPeriodMonths: Number(editingAppointment.validityPeriodMonths) || 0,
-      price: selectedService?.price || editingAppointment.price || 0,
+      price: editingAppointment.price || selectedService?.price || 0,
     };
     
     const { id, ...appointmentData } = appointmentToUpdate;
@@ -171,8 +174,8 @@ export default function AppointmentsPage() {
   }, [appointments]);
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
+      <div className="flex items-center justify-between px-2">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Atendimentos</h1>
             <p className="text-muted-foreground">Gerencie os atendimentos realizados.</p>
@@ -181,7 +184,8 @@ export default function AppointmentsPage() {
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Novo Atendimento
+              <span className="hidden md:inline">Novo Atendimento</span>
+              <span className="inline md:hidden">Novo</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -262,7 +266,14 @@ export default function AppointmentsPage() {
                 <div className="col-span-3 flex items-center gap-2">
                     <Select
                         value={newAppointment.serviceId}
-                        onValueChange={(value) => setNewAppointment({ ...newAppointment, serviceId: value })}
+                        onValueChange={(value) => {
+                          const selectedService = services?.find(s => s.id === value);
+                          setNewAppointment({ 
+                            ...newAppointment,
+                            serviceId: value,
+                            price: selectedService?.price || 0
+                          });
+                        }}
                     >
                     <SelectTrigger>
                         <SelectValue placeholder="Selecione um serviço" />
@@ -314,13 +325,12 @@ export default function AppointmentsPage() {
                                     <Label htmlFor="new-service-price" className="text-right">
                                     Preço
                                     </Label>
-                                    <Input
-                                    id="new-service-price"
-                                    type="text"
-                                    value={newService.price}
-                                    onChange={(e) => setNewService({ ...newService, price: e.target.value })}
-                                    className="col-span-3"
-                                    placeholder="Ex: 25,00"
+                                     <CurrencyInput
+                                        id="price"
+                                        value={newService.price}
+                                        onValueChange={(value) => setNewService({ ...newService, price: value || '' })}
+                                        className="col-span-3"
+                                        placeholder="R$ 0,00"
                                     />
                                 </div>
                             </div>
@@ -330,6 +340,17 @@ export default function AppointmentsPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
+              </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="price" className="text-right">
+                      Preço
+                  </Label>
+                  <CurrencyInput
+                      id="price"
+                      value={newAppointment.price}
+                      onValueChange={(value) => setNewAppointment({ ...newAppointment, price: value || 0 })}
+                      className="col-span-3"
+                  />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="date" className="text-right">
@@ -416,7 +437,14 @@ export default function AppointmentsPage() {
                 </Label>
                 <Select
                     value={editingAppointment.serviceId}
-                    onValueChange={(value) => setEditingAppointment({ ...editingAppointment, serviceId: value })}
+                    onValueChange={(value) => {
+                      const selectedService = services?.find(s => s.id === value);
+                      setEditingAppointment({
+                         ...editingAppointment,
+                         serviceId: value,
+                         price: selectedService?.price || editingAppointment.price || 0 
+                        })
+                    }}
                 >
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Selecione um serviço" />
@@ -429,6 +457,17 @@ export default function AppointmentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-price" className="text-right">
+                      Preço
+                  </Label>
+                  <CurrencyInput
+                      id="edit-price"
+                      value={editingAppointment.price || 0}
+                      onValueChange={(value) => setEditingAppointment({ ...editingAppointment, price: value || 0 })}
+                      className="col-span-3"
+                  />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-date" className="text-right">
@@ -478,44 +517,83 @@ export default function AppointmentsPage() {
         </Dialog>
 
 
-      <Card>
-        <CardContent className="mt-6">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Preço</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={5} className="text-center">Carregando...</TableCell></TableRow>}
-                {sortedAppointments.map((appointment) => {
-                  const client = clients?.find(c => c.id === appointment.clientId);
-                  const service = services?.find(s => s.id === appointment.serviceId);
-                  return (
-                      <TableRow key={appointment.id}>
-                          <TableCell className="font-medium whitespace-nowrap">{client?.name || '...'}</TableCell>
-                          <TableCell className="whitespace-nowrap">{service?.name || '...'}</TableCell>
-                          <TableCell>{formatDate(appointment.appointmentDate)}</TableCell>
-                          <TableCell>R$ {appointment.price?.toFixed(2) || '0,00'}</TableCell>
-                          <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => openEditDialog(appointment)}>
-                                  <Pencil className="h-4 w-4" />
-                                  <span className="sr-only">Editar Atendimento</span>
-                              </Button>
-                          </TableCell>
-                      </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Desktop Table */}
+      <div className="hidden md:block">
+        <Card>
+          <CardContent className="mt-6">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Serviço</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Preço</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={5} className="text-center">Carregando...</TableCell></TableRow>}
+                  {sortedAppointments.map((appointment) => {
+                    const client = clients?.find(c => c.id === appointment.clientId);
+                    const service = services?.find(s => s.id === appointment.serviceId);
+                    return (
+                        <TableRow key={appointment.id}>
+                            <TableCell className="font-medium whitespace-nowrap">{client?.name || '...'}</TableCell>
+                            <TableCell className="whitespace-nowrap">{service?.name || '...'}</TableCell>
+                            <TableCell>{formatDate(appointment.appointmentDate)}</TableCell>
+                            <TableCell>{formatCurrency(appointment.price || 0)}</TableCell>
+                            <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" onClick={() => openEditDialog(appointment)}>
+                                    <Pencil className="h-4 w-4" />
+                                    <span className="sr-only">Editar Atendimento</span>
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+       {/* Mobile Cards */}
+       <div className="grid gap-4 md:hidden">
+        {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <p className="text-center">Carregando...</p>}
+        {sortedAppointments.map((appointment) => {
+            const client = clients?.find(c => c.id === appointment.clientId);
+            const service = services?.find(s => s.id === appointment.serviceId);
+            return (
+              <Card key={appointment.id}>
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center text-lg">
+                    <span>{client?.name || '...'}</span>
+                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(appointment)}>
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Editar Atendimento</span>
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Serviço:</span>
+                    <span className="font-medium">{service?.name || '...'}</span>
+                  </div>
+                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Data:</span>
+                    <span className="font-medium">{formatDate(appointment.appointmentDate)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Preço:</span>
+                    <span className="font-medium">{formatCurrency(appointment.price || 0)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+        })}
+      </div>
     </div>
   );
 }
