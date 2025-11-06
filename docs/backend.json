@@ -134,6 +134,46 @@
         "appointmentDate",
         "validityPeriodMonths"
       ]
+    },
+    "ActivationToken": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivationToken",
+      "type": "object",
+      "description": "Represents an activation token for user accounts.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the token (document ID)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the token was created."
+        },
+        "durationMonths": {
+          "type": "number",
+          "description": "The duration of the activation in months."
+        },
+        "isUsed": {
+          "type": "boolean",
+          "description": "Flag indicating if the token has been used."
+        },
+        "usedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the token was used."
+        },
+        "usedBy": {
+          "type": "string",
+          "description": "UID of the professional who used the token."
+        }
+      },
+      "required": [
+        "id",
+        "createdAt",
+        "durationMonths",
+        "isUsed"
+      ]
     }
   },
   "auth": {
@@ -219,8 +259,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/activationTokens/{tokenId}",
+        "definition": {
+            "entityName": "ActivationToken",
+            "schema": {
+                "$ref": "#/backend/entities/ActivationToken"
+            },
+            "description": "Stores activation tokens for user accounts. Access is restricted.",
+            "params": [
+                {
+                    "name": "tokenId",
+                    "description": "Unique identifier for the token."
+                }
+            ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the BeautyFlow application's core features: client management, service tracking, appointment scheduling, and renewal reminders. The structure prioritizes authorization independence, clarity, and scalability.  Authorization independence is achieved through path-based ownership and denormalization. Specifically, each client, service, and appointment is stored under the professional's document, which implicitly grants the professional ownership and control. All reads/writes for a professional's data are thus constrained to that professional's scope without needing `get()` calls in security rules. The structure supports the required QAPs by segregating each professional's data into a separate document and collection, ensuring that list operations are secure and efficient."
+    "reasoning": "The Firestore data structure is designed to support the BeautyFlow application's core features: client management, service tracking, appointment scheduling, and renewal reminders. The structure prioritizes authorization independence, clarity, and scalability.  Authorization independence is achieved through path-based ownership and denormalization. Specifically, each client, service, and appointment is stored under the professional's document, which implicitly grants the professional ownership and control. All reads/writes for a professional's data are thus constrained to that professional's scope without needing `get()` calls in security rules. The structure supports the required QAPs by segregating each professional's data into a separate document and collection, ensuring that list operations are secure and efficient. A new collection for activation tokens has been added to manage account activations."
   }
 }

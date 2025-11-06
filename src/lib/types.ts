@@ -32,3 +32,12 @@ export type Appointment = {
     validityPeriodMonths: number;
     price?: number;
 };
+
+export type ActivationToken = {
+    id: string;
+    createdAt: string; // ISO string
+    durationMonths: number;
+    isUsed: boolean;
+    usedAt?: string; // ISO string
+    usedBy?: string; // UID of the professional
+};

@@ -10,6 +10,7 @@ import {
   CalendarPlus,
   LogOut,
   PanelLeft,
+  KeyRound,
 } from 'lucide-react';
 
 import {
@@ -30,6 +31,8 @@ import { Button } from '@/components/ui/button';
 import { Logo } from './icons/logo';
 import { useFirebase } from '@/firebase';
 
+const ADMIN_UID = 'fE4wQQun2zgDr39cwH0AKoOADkT2';
+
 const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/appointments', icon: CalendarPlus, label: 'Atendimentos' },
@@ -38,10 +41,15 @@ const navItems = [
   { href: '/services', icon: List, label: 'Serviços' },
 ];
 
+const adminNavItems = [
+    { href: '/admin/tokens', icon: KeyRound, label: 'Gerar Tokens' }
+]
+
 function AppShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { auth, isUserLoading } = useFirebase();
+  const { auth, user, isUserLoading } = useFirebase();
   const { setOpenMobile, isMobile } = useSidebar();
+  const isAdmin = user?.uid === ADMIN_UID;
 
   if (isUserLoading) {
     return (
@@ -95,6 +103,27 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+            {isAdmin && (
+                <>
+                    <SidebarSeparator className="my-4" />
+                     {adminNavItems.map((item) => (
+                        <SidebarMenuItem key={item.href}>
+                            <SidebarMenuButton
+                            asChild
+                            isActive={pathname === item.href}
+                            tooltip={item.label}
+                            className="justify-start"
+                            onClick={handleLinkClick}
+                            >
+                            <Link href={item.href}>
+                                <item.icon className="shrink-0" />
+                                <span>{item.label}</span>
+                            </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    ))}
+                </>
+            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>

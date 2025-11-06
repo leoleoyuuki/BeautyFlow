@@ -140,5 +140,30 @@ service cloud.firestore {
       allow update: if isExistingOwner(professionalId) && request.resource.data.professionalId == resource.data.professionalId;
       allow delete: if isExistingOwner(professionalId);
     }
+
+    /**
+     * @description Controls access to activation tokens.
+     * @path /activationTokens/{tokenId}
+     * @allow (get, list, create) - Only the admin user can create and view tokens.
+     * @allow (update) - Any authenticated user can update a token (to use it), but only if it hasn't been used before.
+     * @deny (delete) - Tokens cannot be deleted.
+     */
+    match /activationTokens/{tokenId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isAdmin() {
+            return isSignedIn() && request.auth.uid == 'fE4wQQun2zgDr39cwH0AKoOADkT2';
+        }
+
+        allow get, list, create: if isAdmin();
+        
+        // Allow a user to 'claim' a token by updating it with their UID,
+        // but only if it's not already used.
+        allow update: if isSignedIn() && resource.data.isUsed == false;
+        
+        allow delete: if false;
+    }
   }
 }
