@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { addMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,14 +54,19 @@ export default function ActivatePage() {
                 usedBy: user.uid,
             });
 
-            // Update professional's profile with expiration date
+            // Create or update professional's profile with expiration date
             const professionalSnap = await getDoc(professionalRef);
             const professionalData = (professionalSnap.data() as Professional) || {};
             
-            await updateDoc(professionalRef, {
+            const dataToSave = {
                 ...professionalData,
+                id: user.uid,
+                name: professionalData.name || user.displayName || 'Novo Usuário',
+                contactNumber: professionalData.contactNumber || user.phoneNumber || '',
                 activationExpiresAt: expirationDate.toISOString(),
-            });
+            };
+
+            await setDoc(professionalRef, dataToSave, { merge: true });
 
             toast({
                 title: 'Sucesso!',
