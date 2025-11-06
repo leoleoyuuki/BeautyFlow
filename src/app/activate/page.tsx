@@ -8,7 +8,7 @@ import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { addMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { ActivationToken, Professional } from '@/lib/types';
 import { Logo } from '@/components/icons/logo';
@@ -115,6 +115,16 @@ export default function ActivatePage() {
                         {isLoading ? 'Ativando...' : 'Ativar Conta'}
                     </Button>
                 </CardContent>
+                 <CardFooter className="flex-col items-center justify-center pt-4 border-t">
+                    <p className="text-sm text-center text-muted-foreground px-4">
+                        Não possui um código de ativação? Clique abaixo para pedir o seu.
+                    </p>
+                    <Button variant="link" className="mt-2" asChild>
+                        <a href="https://wa.me/11957211546" target="_blank" rel="noopener noreferrer">
+                            Pedir pelo WhatsApp
+                        </a>
+                    </Button>
+                </CardFooter>
             </Card>
         </div>
     );
