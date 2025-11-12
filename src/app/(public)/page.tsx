@@ -145,19 +145,21 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative overflow-hidden py-24 md:py-32 lg:py-40">
-          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/20 via-background to-background"></div>
-          <div
-            className="absolute -top-1/2 left-1/2 -z-20 h-[150%] w-1/2 -translate-x-1/2 rounded-full bg-gradient-to-br from-primary/50 to-accent/30 blur-3xl"
-            style={{
-              animation: 'spin 20s linear infinite alternate',
-            }}
-          ></div>
+          <div className="absolute inset-0 -z-10 bg-background">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background"></div>
+            <div
+              className="absolute -top-1/2 left-1/4 h-[150%] w-1/2 animate-pulse-slow rounded-full bg-gradient-to-br from-primary/20 to-accent/10 blur-3xl"
+            ></div>
+             <div
+              className="absolute -bottom-1/2 right-1/4 h-[150%] w-1/2 animate-pulse-slower rounded-full bg-gradient-to-tl from-primary/10 to-accent/20 blur-3xl"
+            ></div>
+          </div>
           <div className="container text-center">
             <div className="flex flex-col items-center">
-              <h1 className="max-w-4xl scroll-m-20 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-                Transforme sua agenda. Fature{' '}
+              <h1 className="max-w-4xl scroll-m-20 text-4xl font-extrabold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
+                Menos agenda, mais{' '}
                 <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  mais
+                  beleza
                 </span>
                 .
               </h1>

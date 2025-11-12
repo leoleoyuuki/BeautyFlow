@@ -88,10 +88,24 @@ export default {
             height: '0',
           },
         },
+        'pulse-slow': {
+          '50%': {
+            transform: 'scale(1.1) rotate(5deg)',
+            opacity: '0.4',
+          },
+        },
+        'pulse-slower': {
+           '50%': {
+            transform: 'scale(1.2) rotate(-5deg)',
+            opacity: '0.3',
+          },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'pulse-slow': 'pulse-slow 15s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-slower': 'pulse-slower 20s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },
