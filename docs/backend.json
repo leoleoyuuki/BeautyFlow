@@ -183,8 +183,7 @@
   },
   "auth": {
     "providers": [
-      "google.com",
-      "apple.com"
+      "google.com"
     ]
   },
   "firestore": {
