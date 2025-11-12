@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -6,7 +7,6 @@ import { Firestore, doc, getDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { usePathname, useRouter } from 'next/navigation';
-import { AppShell } from '@/components/app-shell';
 import type { Professional } from '@/lib/types';
 import { isAfter } from 'date-fns';
 
@@ -72,6 +72,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const router = useRouter();
   const pathname = usePathname();
+  const isActivatePage = pathname === '/activate';
 
   useEffect(() => {
     if (!auth) {
@@ -120,35 +121,43 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     return () => unsubscribe();
   }, [auth, firestore]);
 
-  useEffect(() => {
+ useEffect(() => {
     if (userAuthState.isUserLoading) {
-      return; // Wait until auth state is resolved
+      return;
     }
 
-    const ADMIN_UID = 'fE4wQQun2zgDr39cwH0AKoOADkT2';
+    const isLandingPage = pathname === '/';
+    const isAuthPage = pathname === '/login' || pathname === '/activate';
     const isUserLoggedIn = !!userAuthState.user;
-    const isUserAdmin = userAuthState.user?.uid === ADMIN_UID;
-    const isLoginPage = pathname === '/login';
-    const isActivatePage = pathname === '/activate';
-    
-    if (isUserAdmin) {
-        if (isLoginPage || isActivatePage) {
-            router.push('/');
+    const isUserAdmin = userAuthState.user?.uid === 'fE4wQQun2zgDr39cwH0AKoOADkT2';
+
+    if (isUserLoggedIn) {
+      if (isUserAdmin) {
+        // Admin is logged in, ensure they are in the app
+        if (isAuthPage || isLandingPage) {
+          router.push('/dashboard');
         }
-        return;
+      } else {
+        // Regular user is logged in
+        if (!userAuthState.isAccountActive && !isActivatePage) {
+          // Not active, must activate
+          router.push('/activate');
+        } else if (userAuthState.isAccountActive) {
+           // Active user, should not be on auth pages or landing page
+           if (isAuthPage || isLandingPage) {
+             router.push('/dashboard');
+           }
+        }
+      }
+    } else {
+      // User is not logged in
+      const isPublicRoute = isLandingPage || isAuthPage;
+      if (!isPublicRoute) {
+         // If they are trying to access an app page, redirect to login
+        router.push('/login');
+      }
     }
-
-    if (!isUserLoggedIn && !isLoginPage) {
-      router.push('/login');
-    } else if (isUserLoggedIn && isLoginPage) {
-      router.push('/');
-    } else if (isUserLoggedIn && !userAuthState.isAccountActive && !isActivatePage) {
-      router.push('/activate');
-    } else if (isUserLoggedIn && userAuthState.isAccountActive && isActivatePage) {
-        router.push('/');
-    }
-
-  }, [userAuthState, pathname, router]);
+  }, [userAuthState, pathname, router, isActivatePage]);
 
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
@@ -161,31 +170,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     };
   }, [firebaseApp, firestore, auth, userAuthState]);
   
-  const isAuthPage = pathname === '/login' || pathname === '/activate';
-  
-  // Don't render AppShell on auth pages
-  if (isAuthPage) {
-      return (
-        <FirebaseContext.Provider value={contextValue}>
-            <FirebaseErrorListener />
-            {children}
-        </FirebaseContext.Provider>
-      )
-  }
-
-  // Show loading for main app content until auth is resolved
-  if (userAuthState.isUserLoading) {
-    return (
-        <div className="flex items-center justify-center h-screen">
-            <div className="text-2xl font-bold">Carregando...</div>
-        </div>
-    );
-  }
-
   return (
     <FirebaseContext.Provider value={contextValue}>
-      <FirebaseErrorListener />
-      <AppShell>{children}</AppShell>
+        <FirebaseErrorListener />
+        {children}
     </FirebaseContext.Provider>
   );
 };

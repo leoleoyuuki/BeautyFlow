@@ -8,6 +8,7 @@ import { FirebaseClientProvider } from '@/firebase';
 const alegreya = Alegreya({
   subsets: ['latin'],
   variable: '--font-alegreya',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -21,10 +22,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <body
         className={cn(
-          'min-h-screen bg-background font-headline antialiased',
+          'min-h-screen bg-background font-body antialiased',
           alegreya.variable
         )}
       >

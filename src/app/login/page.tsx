@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -31,9 +30,9 @@ export default function LoginPage() {
             <div className="flex justify-center mb-4">
                 <Logo className="w-12 h-12 text-primary" />
             </div>
-          <CardTitle className="text-2xl font-bold">Bem-vindo ao BeautyFlow</CardTitle>
+          <CardTitle className="text-2xl font-bold">Bem-vindo(a) de volta</CardTitle>
           <CardDescription>
-            Entre com sua conta para continuar.
+            Entre com sua conta Google para continuar.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">

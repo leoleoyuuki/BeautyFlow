@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -34,7 +35,7 @@ import { useFirebase } from '@/firebase';
 const ADMIN_UID = 'fE4wQQun2zgDr39cwH0AKoOADkT2';
 
 const navItems = [
-  { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/appointments', icon: CalendarPlus, label: 'Atendimentos' },
   { href: '/clients', icon: Users, label: 'Clientes' },
   { href: '/renewals', icon: BellRing, label: 'Renovações' },
@@ -78,7 +79,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="shrink-0" asChild>
-                <Link href="/">
+                <Link href="/dashboard">
                     <Logo className="text-primary"/>
                 </Link>
             </Button>
