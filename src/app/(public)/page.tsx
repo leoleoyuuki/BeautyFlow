@@ -25,29 +25,37 @@ import Image from 'next/image';
 
 const testimonials = [
   {
-    name: 'Ana Silva',
-    title: 'Manicure Profissional',
-    quote:
-      'O BeautyFlow transformou a gestão das minhas clientes. As notificações de renovação são mágicas e me ajudaram a aumentar meu faturamento em 20%!',
-    avatar:
-      'https://images.unsplash.com/photo-1597223557154-721c1cecc4b0?q=80&w=2080&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  },
-  {
-    name: 'Juliana Costa',
-    title: 'Lash Designer',
-    quote:
-      'Finalmente um app que entende as minhas necessidades. Agendar, acompanhar e lembrar minhas clientes de voltar nunca foi tão fácil. Indico de olhos fechados!',
-    avatar:
-      'https://images.unsplash.com/photo-1557053910-d9eadeed1c58?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  },
-  {
-    name: 'Camila Santos',
+    name: 'Luciene Oliveira',
     title: 'Esteticista',
     quote:
-      'Adeus, planilhas! Com o BeautyFlow, tenho tudo na palma da mão: clientes, serviços, e o mais importante, as datas de retorno. Minha organização é outra.',
+      'Não tinha controle de quanto eu faturava por mês, muito menos das clientes que estão com procedimentos a serem renovados. O BeautyFlow resolveu esse problema que eu nem sabia que tinha.',
     avatar:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  },
+      '/images/luciene.jpg',
+  }
+  // {
+  //   name: 'Ana Silva',
+  //   title: 'Manicure Profissional',
+  //   quote:
+  //     'O BeautyFlow transformou a gestão das minhas clientes. As notificações de renovação são mágicas e me ajudaram a aumentar meu faturamento em 20%!',
+  //   avatar:
+  //     'https://images.unsplash.com/photo-1597223557154-721c1cecc4b0?q=80&w=2080&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  // },
+  // {
+  //   name: 'Juliana Costa',
+  //   title: 'Lash Designer',
+  //   quote:
+  //     'Finalmente um app que entende as minhas necessidades. Agendar, acompanhar e lembrar minhas clientes de voltar nunca foi tão fácil. Indico de olhos fechados!',
+  //   avatar:
+  //     'https://images.unsplash.com/photo-1557053910-d9eadeed1c58?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  // },
+  // {
+  //   name: 'Camila Santos',
+  //   title: 'Esteticista',
+  //   quote:
+  //     'Adeus, planilhas! Com o BeautyFlow, tenho tudo na palma da mão: clientes, serviços, e o mais importante, as datas de retorno. Minha organização é outra.',
+  //   avatar:
+  //     'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  // },
 ];
 
 const features = [
@@ -115,8 +123,8 @@ const faqs = [
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/90 backdrop-blur-lg">
-        <div className="container flex h-16 items-center justify-between">
+      <header className=" border-b border-border/60 bg-background/90 backdrop-blur-lg">
+        <div className=" mx-auto w-[80%] container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Logo className="h-6 w-6 text-primary" />
             <span className="font-bold">BeautyFlow</span>
@@ -144,7 +152,7 @@ export default function LandingPage() {
       </header>
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-32 md:py-40 lg:py-48">
+        <section className="mx-auto w-[80%] overflow-hidden py-32 md:py-40 lg:py-48">
           <div className="absolute inset-0 -z-10 bg-background">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background"></div>
             <div
@@ -159,7 +167,8 @@ export default function LandingPage() {
             <div className="mx-auto flex max-w-6xl flex-col items-center text-center">
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm">
                 <Star className="h-4 w-4 fill-current" />
-                <span>Mais de 500 profissionais confiam no BeautyFlow</span>
+                {/* <span>Mais de 500 profissionais confiam no BeautyFlow</span> */}
+                <span>Para profissionais que buscam agilidade e eficiência</span>
               </div>
               <h1 className="mt-8 scroll-m-20 text-5xl font-black tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl">
                 Transforme sua{' '}
@@ -186,7 +195,7 @@ export default function LandingPage() {
                     'group h-14 px-8 text-lg font-semibold shadow-xl shadow-primary/30 transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-2xl hover:shadow-primary/40'
                   )}
                 >
-                  Começar Gratuitamente
+                  Começar Agora
                   <ChevronRight className="ml-2 h-6 w-6 transition-transform duration-300 group-hover:translate-x-2" />
                 </Link>
                 <Button
@@ -227,7 +236,7 @@ export default function LandingPage() {
         {/* Features Section */}
         <section
           id="features"
-          className="relative overflow-hidden py-16 md:py-24"
+          className="mx-auto w-[80%] overflow-hidden py-16 md:py-24"
         >
           <div className="absolute inset-0 -z-10 bg-background">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background"></div>
@@ -273,7 +282,7 @@ export default function LandingPage() {
         {/* Testimonials Section */}
         <section
           id="testimonials"
-          className="relative overflow-hidden py-16 md:py-24"
+          className="mx-auto w-[80%] overflow-hidden py-16 md:py-24"
         >
           <div className="absolute inset-0 -z-10 bg-background">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background"></div>
@@ -330,7 +339,7 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ Section */}
-        <section id="faq" className="relative overflow-hidden py-16 md:py-24">
+        <section id="faq" className="mx-auto w-[80%] overflow-hidden py-16 md:py-24">
          <div className="absolute inset-0 -z-10 bg-background">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background"></div>
             <div
@@ -363,7 +372,7 @@ export default function LandingPage() {
         </section>
 
         {/* Final CTA Section */}
-        <section className="relative overflow-hidden py-16 md:py-24">
+        <section className="mx-auto w-[80%] overflow-hidden py-16 md:py-24">
            <div className="absolute inset-0 -z-10 bg-background">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background"></div>
             <div
@@ -403,7 +412,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t">
-        <div className="container flex flex-col items-center justify-between gap-4 py-8 md:flex-row">
+        <div className="mx-auto w-[80%] container flex flex-col items-center justify-between gap-4 py-8 md:flex-row">
           <div className="flex items-center gap-2">
             <Logo className="h-6 w-6 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
