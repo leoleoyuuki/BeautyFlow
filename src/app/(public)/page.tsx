@@ -152,7 +152,7 @@ export default function LandingPage() {
       </header>
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="mx-auto w-[80%] overflow-hidden py-32 md:py-40 lg:py-48">
+        <section className="mx-auto w-[80%] overflow-hidden py-16 md:py-40 lg:py-48">
           <div className="absolute inset-0 -z-10 bg-background">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background"></div>
             <div
@@ -236,7 +236,7 @@ export default function LandingPage() {
         {/* Features Section */}
         <section
           id="features"
-          className="mx-auto w-[80%] overflow-hidden py-16 md:py-24"
+          className="mx-auto w-[80%] overflow-hidden py-8 md:py-24"
         >
           <div className="absolute inset-0 -z-10 bg-background">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background"></div>
@@ -339,7 +339,7 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ Section */}
-        <section id="faq" className="mx-auto w-[80%] overflow-hidden py-16 md:py-24">
+        <section id="faq" className="mx-auto w-[80%] overflow-hidden py-8 md:py-24">
          <div className="absolute inset-0 -z-10 bg-background">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background"></div>
             <div
