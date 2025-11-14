@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { addMonths, isAfter, differenceInMonths, format } from 'date-fns';
+import { addMonths, isAfter, differenceInDays, format } from 'date-fns';
 import type { Appointment, Client, Service } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare } from 'lucide-react';
@@ -24,16 +24,17 @@ export function UpcomingRenewals({ appointments, clients, services }: UpcomingRe
     return appointments
       .map(p => {
         const renewalDate = addMonths(new Date(p.appointmentDate), p.validityPeriodMonths);
-        return { ...p, renewalDate };
+        const daysLeft = differenceInDays(renewalDate, now);
+        return { ...p, renewalDate, daysLeft };
       })
-      .filter(p => isAfter(p.renewalDate, now) && isAfter(twoMonthsFromNow, p.renewalDate))
+      .filter(p => isAfter(p.renewalDate, now) && isAfter(twoMonthsFromNow, p.renewalDate) && p.validityPeriodMonths > 0)
       .sort((a, b) => a.renewalDate.getTime() - b.renewalDate.getTime())
       .slice(0, 5);
   }, [appointments]);
 
-  const handleWhatsAppRedirect = (client: Client, service: Service, procedure: Appointment) => {
-    const monthsAgo = differenceInMonths(new Date(), new Date(procedure.appointmentDate));
-    const message = `Olá ${client.name.split(' ')[0]}! Já faz ${monthsAgo} meses que você fez seu procedimento de ${service.name}. Que tal renovar sua beleza com 5% de desconto? 😊`;
+  const handleWhatsAppRedirect = (client: Client, service: Service, procedure: {daysLeft: number}) => {
+    const daysText = procedure.daysLeft === 1 ? '1 dia' : `${procedure.daysLeft} dias`;
+    const message = `Olá ${client.name.split(' ')[0]}! Tudo bem? Passando para lembrar que seu procedimento de ${service.name} vence em ${daysText}. Que tal agendarmos a sua renovação?`;
     const whatsappUrl = `https://wa.me/${client.phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
