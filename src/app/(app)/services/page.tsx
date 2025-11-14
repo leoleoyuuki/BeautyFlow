@@ -101,7 +101,7 @@ export default function ServicesPage() {
       <div className="flex items-center justify-between px-2">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Serviços</h1>
-            <p className="text-muted-foreground">Gerencie os procedimentos que você oferece.</p>
+            <p className="text-muted-foreground">Adicione todos os seus procedimentos aqui para facilitar o agendamento.</p>
         </div>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>

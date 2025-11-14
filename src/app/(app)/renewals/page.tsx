@@ -56,7 +56,7 @@ export default function RenewalsPage() {
   }, [allAppointments]);
 
   const handleWhatsAppRedirect = (client: Client, service: Service, procedure: Appointment & { renewalDate: Date }) => {
-    const message = `Olá ${client.name.split(' ')[0]}! Está na hora de renovar seu procedimento de ${service.name}. Que tal agendarmos um horário? 😊`;
+    const message = `Olá ${client.name.split(' ')[0]}! Está na hora de renovar seu procedimento de ${service.name}. Que tal agendarmos um horário? 💖✨`;
     const whatsappUrl = `https://wa.me/${client.phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -79,7 +79,7 @@ export default function RenewalsPage() {
     <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
        <div className="px-2">
             <h1 className="text-3xl font-bold tracking-tight font-headline">Renovações</h1>
-            <p className="text-muted-foreground">Acompanhe todos os procedimentos com vencimento futuro.</p>
+            <p className="text-muted-foreground">Acompanhe os vencimentos e envie lembretes para suas clientes agendarem a renovação. 💖✨</p>
         </div>
 
       {/* Desktop Table */}

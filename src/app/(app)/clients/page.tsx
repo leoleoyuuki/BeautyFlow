@@ -95,7 +95,7 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between px-2">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Clientes</h1>
-            <p className="text-muted-foreground">Gerencie sua lista de clientes.</p>
+            <p className="text-muted-foreground">Cadastre suas clientes com nome e telefone para gerenciar os atendimentos.</p>
         </div>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
