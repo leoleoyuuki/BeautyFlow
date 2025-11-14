@@ -9,9 +9,16 @@ interface CurrencyInputProps extends Omit<InputProps, 'onChange' | 'value'> {
   onValueChange: (value: number | undefined) => void;
 }
 
+const format = (num: number) => {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(num);
+};
+
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ value, onValueChange, className, ...props }, ref) => {
-    const [displayValue, setDisplayValue] = React.useState(() => format(value));
+    const [displayValue, setDisplayValue] = React.useState(() => format(value || 0));
     const localRef = React.useRef<HTMLInputElement>(null);
     const inputRef = (ref || localRef) as React.RefObject<HTMLInputElement>;
 
@@ -21,13 +28,6 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
             setDisplayValue(format(value || 0));
         }
     }, [value, inputRef]);
-
-    const format = (num: number) => {
-      return new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      }).format(num);
-    };
 
     const parse = (str: string) => {
       const numbers = str.replace(/[^\d]/g, "");
@@ -56,8 +56,11 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
 
     // This handles the initial render and external value changes
     React.useEffect(() => {
-        setDisplayValue(format(value || 0));
-    }, [value]);
+        // We only want to format on initial render if the value is not being edited
+        if (inputRef.current !== document.activeElement) {
+            setDisplayValue(format(value || 0));
+        }
+    }, [value, inputRef]);
 
     return (
         <Input
