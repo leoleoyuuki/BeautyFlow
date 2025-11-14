@@ -21,13 +21,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Pencil, Phone } from 'lucide-react';
+import { PlusCircle, Pencil, Phone, Trash } from 'lucide-react';
 import type { Client } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ClientsPage() {
   const { firestore, user } = useFirebase();
@@ -35,6 +46,8 @@ export default function ClientsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [deletingClient, setDeletingClient] = useState<Client | null>(null);
+
 
   const clientsCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -64,6 +77,13 @@ export default function ClientsPage() {
     setEditingClient(null);
     setEditDialogOpen(false);
   }
+
+  const handleDeleteClient = () => {
+    if (!clientsCollection || !deletingClient) return;
+    const clientDocRef = doc(clientsCollection, deletingClient.id);
+    deleteDocumentNonBlocking(clientDocRef);
+    setDeletingClient(null);
+  };
 
   const openEditDialog = (client: Client) => {
     setEditingClient(client);
@@ -187,9 +207,29 @@ export default function ClientsPage() {
                         <TableCell>{client.phoneNumber}</TableCell>
                         <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => openEditDialog(client)}>
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Editar Cliente</span>
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Editar Cliente</span>
                             </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={() => setDeletingClient(client)}>
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                    <span className="sr-only">Excluir Cliente</span>
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Essa ação não pode ser desfeita. Isso irá apagar permanentemente o cliente e todos os seus atendimentos.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setDeletingClient(null)}>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteClient}>Continuar</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                         </TableCell>
                         </TableRow>
                     ))}
@@ -208,10 +248,32 @@ export default function ClientsPage() {
                 <CardHeader>
                     <CardTitle className="flex justify-between items-center text-lg">
                         <span>{client.name}</span>
-                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(client)}>
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Editar Cliente</span>
-                        </Button>
+                        <div>
+                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(client)}>
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Editar Cliente</span>
+                            </Button>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={() => setDeletingClient(client)}>
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                    <span className="sr-only">Excluir Cliente</span>
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Essa ação não pode ser desfeita. Isso irá apagar permanentemente o cliente e todos os seus atendimentos.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setDeletingClient(null)}>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteClient}>Continuar</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                        </div>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -227,3 +289,4 @@ export default function ClientsPage() {
   );
 }
 
+    

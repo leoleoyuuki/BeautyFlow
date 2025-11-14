@@ -21,17 +21,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, PlusCircle, Pencil } from 'lucide-react';
+import { CalendarIcon, PlusCircle, Pencil, Trash } from 'lucide-react';
 import { formatDate, cn, formatCurrency } from '@/lib/utils';
 import type { Client, Service, Appointment } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
@@ -63,6 +74,8 @@ export default function AppointmentsPage() {
   const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
   const [newService, setNewService] = useState({ name: '', description: '', price: 0 });
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null);
+
 
   const appointmentsCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -160,6 +173,13 @@ export default function AppointmentsPage() {
     setEditingAppointment(null);
     setEditDialogOpen(false);
 };
+
+ const handleDeleteAppointment = () => {
+    if (!appointmentsCollection || !deletingAppointment) return;
+    const appointmentDocRef = doc(appointmentsCollection, deletingAppointment.id);
+    deleteDocumentNonBlocking(appointmentDocRef);
+    setDeletingAppointment(null);
+  };
 
 
   const openEditDialog = (appointment: Appointment) => {
@@ -548,6 +568,26 @@ export default function AppointmentsPage() {
                                     <Pencil className="h-4 w-4" />
                                     <span className="sr-only">Editar Atendimento</span>
                                 </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => setDeletingAppointment(appointment)}>
+                                      <Trash className="h-4 w-4 text-destructive" />
+                                      <span className="sr-only">Excluir Atendimento</span>
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Essa ação não pode ser desfeita. Isso irá apagar permanentemente o atendimento.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel onClick={() => setDeletingAppointment(null)}>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleDeleteAppointment}>Continuar</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                             </TableCell>
                         </TableRow>
                     );
@@ -570,10 +610,32 @@ export default function AppointmentsPage() {
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center text-lg">
                     <span>{client?.name || '...'}</span>
-                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(appointment)}>
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Editar Atendimento</span>
-                    </Button>
+                     <div>
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(appointment)}>
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Editar Atendimento</span>
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => setDeletingAppointment(appointment)}>
+                              <Trash className="h-4 w-4 text-destructive" />
+                              <span className="sr-only">Excluir Atendimento</span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Essa ação não pode ser desfeita. Isso irá apagar permanentemente o atendimento.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel onClick={() => setDeletingAppointment(null)}>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteAppointment}>Continuar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                     </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
@@ -598,3 +660,4 @@ export default function AppointmentsPage() {
   );
 }
 
+    

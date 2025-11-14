@@ -21,13 +21,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Pencil } from 'lucide-react';
+import { PlusCircle, Pencil, Trash } from 'lucide-react';
 import type { Service } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { formatCurrency } from '@/lib/utils';
@@ -39,6 +50,7 @@ export default function ServicesPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newService, setNewService] = useState({ name: '', description: '', price: 0 });
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [deletingService, setDeletingService] = useState<Service | null>(null);
 
   const servicesCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -70,6 +82,13 @@ export default function ServicesPage() {
     updateDocumentNonBlocking(serviceDocRef, updatedData);
     setEditingService(null);
     setEditDialogOpen(false);
+  };
+
+  const handleDeleteService = () => {
+    if (!servicesCollection || !deletingService) return;
+    const serviceDocRef = doc(servicesCollection, deletingService.id);
+    deleteDocumentNonBlocking(serviceDocRef);
+    setDeletingService(null);
   };
 
   const openEditDialog = (service: Service) => {
@@ -221,6 +240,26 @@ export default function ServicesPage() {
                             <Pencil className="h-4 w-4" />
                             <span className="sr-only">Editar Serviço</span>
                         </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => setDeletingService(service)}>
+                                <Trash className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Excluir Serviço</span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Essa ação não pode ser desfeita. Isso irá apagar permanentemente o serviço.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => setDeletingService(null)}>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteService}>Continuar</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                     </TableRow>
                     ))}
@@ -239,10 +278,32 @@ export default function ServicesPage() {
             <CardHeader>
                 <CardTitle className="flex justify-between items-center text-lg">
                     <span>{service.name}</span>
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(service)}>
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Editar Serviço</span>
-                    </Button>
+                    <div>
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(service)}>
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Editar Serviço</span>
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => setDeletingService(service)}>
+                                <Trash className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Excluir Serviço</span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Essa ação não pode ser desfeita. Isso irá apagar permanentemente o serviço.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => setDeletingService(null)}>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteService}>Continuar</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                    </div>
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
@@ -257,3 +318,5 @@ export default function ServicesPage() {
     </div>
   );
 }
+
+    
