@@ -400,17 +400,22 @@ export default function AppointmentsPage() {
                 </Popover>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="validity" className="text-right">
-                    Validade (meses)
+                 <Label htmlFor="validity" className="text-right">
+                    Validade
                 </Label>
-                <Input
-                    id="validity"
-                    type="text"
-                    value={newAppointment.validityPeriodMonths}
-                    onChange={(e) => setNewAppointment({ ...newAppointment, validityPeriodMonths: e.target.value })}
-                    className="col-span-3"
-                    placeholder="Ex: 12"
-                />
+                <div className="col-span-3 space-y-1">
+                    <Input
+                        id="validity"
+                        type="number"
+                        value={newAppointment.validityPeriodMonths}
+                        onChange={(e) => setNewAppointment({ ...newAppointment, validityPeriodMonths: e.target.value })}
+                        className="w-full"
+                        placeholder="Ex: 1"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Tempo em meses para o sistema te lembrar de contatar a cliente para renovar.
+                    </p>
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -517,16 +522,21 @@ export default function AppointmentsPage() {
                 </Popover>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-validity" className="text-right">
-                    Validade (meses)
+                 <Label htmlFor="edit-validity" className="text-right">
+                    Validade
                 </Label>
-                <Input
-                    id="edit-validity"
-                    type="text"
-                    value={editingAppointment.validityPeriodMonths}
-                    onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: e.target.value as any })}
-                    className="col-span-3"
-                />
+                 <div className="col-span-3 space-y-1">
+                    <Input
+                        id="edit-validity"
+                        type="number"
+                        value={editingAppointment.validityPeriodMonths}
+                        onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: e.target.value as any })}
+                        className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Tempo em meses para o sistema te lembrar de contatar a cliente para renovar.
+                    </p>
+                </div>
               </div>
             </div>
             )}
