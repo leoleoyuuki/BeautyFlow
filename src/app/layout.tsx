@@ -31,7 +31,7 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
        <head>
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
       </head>
       <body
         className={cn(
