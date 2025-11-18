@@ -15,6 +15,7 @@ const alegreya = Alegreya({
 export const metadata: Metadata = {
   title: 'BeautyFlow',
   description: 'Gerenciador para profissionais da área da beleza',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
