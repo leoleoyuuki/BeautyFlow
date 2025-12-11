@@ -47,13 +47,18 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function AppointmentsPage() {
   const { firestore, user } = useFirebase();
+  const isMobile = useIsMobile();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addClientDialogOpen, setAddClientDialogOpen] = useState(false);
   const [addServiceDialogOpen, setAddServiceDialogOpen] = useState(false);
+  const [addCalendarOpen, setAddCalendarOpen] = useState(false);
+  const [editCalendarOpen, setEditCalendarOpen] = useState(false);
+
 
   const initialNewAppointmentState = {
     clientId: '',
@@ -193,6 +198,58 @@ export default function AppointmentsPage() {
   const sortedAppointments = useMemo(() => {
     return appointments?.sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()) || [];
   }, [appointments]);
+
+  const DatePicker = ({ date, onSelect, open, onOpenChange }: { date: Date | undefined, onSelect: (date?: Date) => void, open: boolean, onOpenChange: (open: boolean) => void }) => {
+    const handleSelect = (selectedDate?: Date) => {
+      onSelect(selectedDate);
+      if (isMobile) {
+        onOpenChange(false);
+      }
+    };
+  
+    const trigger = (
+      <Button
+        variant={"outline"}
+        className={cn(
+          "col-span-3 justify-start text-left font-normal",
+          !date && "text-muted-foreground"
+        )}
+      >
+        <CalendarIcon className="mr-2 h-4 w-4" />
+        {date ? format(date, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+      </Button>
+    );
+  
+    if (isMobile) {
+      return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogTrigger asChild>{trigger}</DialogTrigger>
+          <DialogContent className="w-auto">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={handleSelect}
+              initialFocus
+            />
+          </DialogContent>
+        </Dialog>
+      );
+    }
+  
+    return (
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+        <PopoverContent className="w-auto p-0">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleSelect}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+    );
+  };
 
   return (
     <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
@@ -376,28 +433,12 @@ export default function AppointmentsPage() {
                 <Label htmlFor="date" className="text-right">
                   Data
                 </Label>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                        variant={"outline"}
-                        className={cn(
-                            "col-span-3 justify-start text-left font-normal",
-                            !newAppointment.appointmentDate && "text-muted-foreground"
-                        )}
-                        >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newAppointment.appointmentDate ? format(newAppointment.appointmentDate, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        <Calendar
-                        mode="single"
-                        selected={newAppointment.appointmentDate}
-                        onSelect={(date) => setNewAppointment({ ...newAppointment, appointmentDate: date })}
-                        initialFocus
-                        />
-                    </PopoverContent>
-                </Popover>
+                <DatePicker 
+                    date={newAppointment.appointmentDate}
+                    onSelect={(date) => setNewAppointment({ ...newAppointment, appointmentDate: date })}
+                    open={addCalendarOpen}
+                    onOpenChange={setAddCalendarOpen}
+                />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                  <Label htmlFor="validity" className="text-right">
@@ -498,28 +539,12 @@ export default function AppointmentsPage() {
                 <Label htmlFor="edit-date" className="text-right">
                   Data
                 </Label>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                        variant={"outline"}
-                        className={cn(
-                            "col-span-3 justify-start text-left font-normal",
-                            !editingAppointment.appointmentDate && "text-muted-foreground"
-                        )}
-                        >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {editingAppointment.appointmentDate ? format(new Date(editingAppointment.appointmentDate), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        <Calendar
-                        mode="single"
-                        selected={editingAppointment.appointmentDate ? new Date(editingAppointment.appointmentDate) : undefined}
-                        onSelect={(date) => setEditingAppointment({ ...editingAppointment, appointmentDate: date as any })}
-                        initialFocus
-                        />
-                    </PopoverContent>
-                </Popover>
+                <DatePicker 
+                    date={editingAppointment.appointmentDate ? new Date(editingAppointment.appointmentDate) : undefined}
+                    onSelect={(date) => setEditingAppointment({ ...editingAppointment, appointmentDate: date as any })}
+                    open={editCalendarOpen}
+                    onOpenChange={setEditCalendarOpen}
+                />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                  <Label htmlFor="edit-validity" className="text-right">
