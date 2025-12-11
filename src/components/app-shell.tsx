@@ -12,6 +12,7 @@ import {
   LogOut,
   PanelLeft,
   KeyRound,
+  ShoppingBasket,
 } from 'lucide-react';
 
 import {
@@ -40,6 +41,7 @@ const navItems = [
   { href: '/clients', icon: Users, label: 'Clientes' },
   { href: '/renewals', icon: BellRing, label: 'Renovações' },
   { href: '/services', icon: List, label: 'Serviços' },
+  { href: '/expenses', icon: ShoppingBasket, label: 'Gastos' },
 ];
 
 const adminNavItems = [
@@ -104,6 +106,12 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+             <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleSignOut} className="justify-start">
+                    <LogOut className="shrink-0" />
+                    <span>Sair</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
             {isAdmin && (
                 <>
                     <SidebarSeparator className="my-4" />
@@ -125,13 +133,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                     ))}
                 </>
             )}
-             <SidebarSeparator className="my-4" />
-             <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleSignOut} className="justify-start">
-                    <LogOut className="shrink-0" />
-                    <span>Sair</span>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
@@ -157,3 +158,4 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </SidebarProvider>
     )
 }
+

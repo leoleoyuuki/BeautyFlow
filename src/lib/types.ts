@@ -42,3 +42,27 @@ export type ActivationToken = {
     usedAt?: string; // ISO string
     usedBy?: string; // UID of the professional
 };
+
+export type MaterialCategory = {
+    id: string;
+    professionalId: string;
+    name: string;
+};
+
+export type Material = {
+    id: string;
+    professionalId: string;
+    name: string;
+    categoryId: string;
+    stock: number;
+};
+
+export type MaterialPurchase = {
+    id: string;
+    professionalId: string;
+    materialId: string;
+    quantity: number;
+    totalPrice: number;
+    purchaseDate: string; // ISO string
+};
+

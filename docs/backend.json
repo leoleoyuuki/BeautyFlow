@@ -179,6 +179,47 @@
         "durationMonths",
         "isUsed"
       ]
+    },
+     "MaterialCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MaterialCategory",
+      "type": "object",
+      "description": "Category for a material.",
+      "properties": {
+        "id": { "type": "string" },
+        "professionalId": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["id", "professionalId", "name"]
+    },
+    "Material": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Material",
+      "type": "object",
+      "description": "Represents a material used by the professional.",
+      "properties": {
+        "id": { "type": "string" },
+        "professionalId": { "type": "string" },
+        "name": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "stock": { "type": "number" }
+      },
+      "required": ["id", "professionalId", "name", "categoryId"]
+    },
+    "MaterialPurchase": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MaterialPurchase",
+      "type": "object",
+      "description": "Represents a record of a material purchase.",
+      "properties": {
+        "id": { "type": "string" },
+        "professionalId": { "type": "string" },
+        "materialId": { "type": "string" },
+        "quantity": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "purchaseDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "professionalId", "materialId", "quantity", "totalPrice", "purchaseDate"]
     }
   },
   "auth": {
@@ -265,6 +306,30 @@
         }
       },
       {
+        "path": "/professionals/{professionalId}/materialCategories/{categoryId}",
+        "definition": {
+          "entityName": "MaterialCategory",
+          "schema": { "$ref": "#/backend/entities/MaterialCategory" },
+          "description": "Stores material categories for each professional."
+        }
+      },
+      {
+        "path": "/professionals/{professionalId}/materials/{materialId}",
+        "definition": {
+          "entityName": "Material",
+          "schema": { "$ref": "#/backend/entities/Material" },
+          "description": "Stores materials for each professional."
+        }
+      },
+      {
+        "path": "/professionals/{professionalId}/materialPurchases/{purchaseId}",
+        "definition": {
+          "entityName": "MaterialPurchase",
+          "schema": { "$ref": "#/backend/entities/MaterialPurchase" },
+          "description": "Stores material purchase records for each professional."
+        }
+      },
+      {
         "path": "/activationTokens/{tokenId}",
         "definition": {
             "entityName": "ActivationToken",
@@ -284,4 +349,3 @@
     "reasoning": "The Firestore data structure is designed to support the BeautyFlow application's core features: client management, service tracking, appointment scheduling, and renewal reminders. The structure prioritizes authorization independence, clarity, and scalability.  Authorization independence is achieved through path-based ownership and denormalization. Specifically, each client, service, and appointment is stored under the professional's document, which implicitly grants the professional ownership and control. All reads/writes for a professional's data are thus constrained to that professional's scope without needing `get()` calls in security rules. The structure supports the required QAPs by segregating each professional's data into a separate document and collection, ensuring that list operations are secure and efficient. A new collection for activation tokens has been added to manage account activations."
   }
 }
-    

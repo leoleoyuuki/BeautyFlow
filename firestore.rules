@@ -143,6 +143,14 @@ service cloud.firestore {
       allow delete: if isOwner(professionalId);
     }
 
+     match /professionals/{professionalId}/{subcollection}/{docId} {
+        function isOwner(professionalId) {
+            return request.auth != null && request.auth.uid == professionalId;
+        }
+
+        allow read, write: if isOwner(professionalId);
+    }
+
     /**
      * @description Controls access to activation tokens.
      * @path /activationTokens/{tokenId}
@@ -181,3 +189,4 @@ service cloud.firestore {
     }
   }
 }
+
