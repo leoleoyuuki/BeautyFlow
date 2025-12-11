@@ -125,19 +125,15 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                     ))}
                 </>
             )}
+             <SidebarSeparator className="my-4" />
+             <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleSignOut} className="justify-start">
+                    <LogOut className="shrink-0" />
+                    <span>Sair</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-            <SidebarSeparator />
-            <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton onClick={handleSignOut} className="justify-start">
-                        <LogOut className="shrink-0" />
-                        <span>Sair</span>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </SidebarMenu>
-        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 md:hidden">
