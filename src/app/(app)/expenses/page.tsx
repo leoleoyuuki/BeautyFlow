@@ -74,41 +74,46 @@ export default function ExpensesPage() {
  const handleAddPurchase = async () => {
     if (!user || !materialsCollection || !categoriesCollection || !purchasesCollection || !firestore) return;
 
-    let materialId = newPurchase.materialId;
-    let categoryId = newPurchase.categoryId;
-
+    let localPurchaseState = { ...newPurchase };
+    
     try {
-        if (!categoryId && newPurchase.categoryName) {
-            const existingCategory = categories?.find(c => c.name.toLowerCase() === newPurchase.categoryName.toLowerCase().trim());
+        if (!localPurchaseState.categoryId && localPurchaseState.categoryName) {
+            const trimmedCategoryName = localPurchaseState.categoryName.trim();
+            const existingCategory = categories?.find(c => c.name.toLowerCase() === trimmedCategoryName.toLowerCase());
             if (existingCategory) {
-                categoryId = existingCategory.id;
+                localPurchaseState.categoryId = existingCategory.id;
             } else {
-                const categoryDoc = await addDoc(categoriesCollection, { name: newPurchase.categoryName.trim(), professionalId: user.uid });
-                categoryId = categoryDoc.id;
+                const categoryDoc = await addDoc(categoriesCollection, { name: trimmedCategoryName, professionalId: user.uid });
+                localPurchaseState.categoryId = categoryDoc.id;
             }
+            // Update state to reflect the new category selection
+            setNewPurchase(prev => ({...prev, categoryId: localPurchaseState.categoryId}));
         }
         
-        if (!categoryId) {
+        if (!localPurchaseState.categoryId) {
             toast({ variant: "destructive", title: "Erro", description: "A categoria é obrigatória." });
             return;
         }
 
-        if (!materialId && newPurchase.materialName) {
-            const existingMaterial = materials?.find(m => m.name.toLowerCase() === newPurchase.materialName.toLowerCase().trim());
+        if (!localPurchaseState.materialId && localPurchaseState.materialName) {
+            const trimmedMaterialName = localPurchaseState.materialName.trim();
+            const existingMaterial = materials?.find(m => m.name.toLowerCase() === trimmedMaterialName.toLowerCase());
             if (existingMaterial) {
-                materialId = existingMaterial.id;
+                localPurchaseState.materialId = existingMaterial.id;
             } else {
-                const materialDoc = await addDoc(materialsCollection, { name: newPurchase.materialName.trim(), categoryId: categoryId, professionalId: user.uid, stock: 0 });
-                materialId = materialDoc.id;
+                const materialDoc = await addDoc(materialsCollection, { name: trimmedMaterialName, categoryId: localPurchaseState.categoryId, professionalId: user.uid, stock: 0 });
+                localPurchaseState.materialId = materialDoc.id;
             }
+             // Update state to reflect the new material selection
+            setNewPurchase(prev => ({...prev, materialId: localPurchaseState.materialId}));
         }
         
-        if (!materialId) {
+        if (!localPurchaseState.materialId) {
             toast({ variant: "destructive", title: "Erro", description: "O material é obrigatório." });
             return;
         }
         
-        const materialRef = doc(materialsCollection, materialId) as DocumentReference<Material>;
+        const materialRef = doc(materialsCollection, localPurchaseState.materialId) as DocumentReference<Material>;
 
         await runTransaction(firestore, async (transaction) => {
             const materialSnap = await transaction.get(materialRef);
@@ -116,14 +121,14 @@ export default function ExpensesPage() {
                 throw new Error("Material não encontrado!");
             }
 
-            const newStock = (materialSnap.data()?.stock || 0) + Number(newPurchase.quantity);
+            const newStock = (materialSnap.data()?.stock || 0) + Number(localPurchaseState.quantity);
             transaction.update(materialRef, { stock: newStock });
             
             const purchaseToAdd = {
-                materialId: materialId,
-                quantity: Number(newPurchase.quantity),
-                totalPrice: newPurchase.totalPrice,
-                purchaseDate: new Date(newPurchase.purchaseDate).toISOString(),
+                materialId: localPurchaseState.materialId,
+                quantity: Number(localPurchaseState.quantity),
+                totalPrice: localPurchaseState.totalPrice,
+                purchaseDate: new Date(localPurchaseState.purchaseDate).toISOString(),
                 professionalId: user.uid,
             };
             const purchaseRef = doc(purchasesCollection);
@@ -179,6 +184,7 @@ export default function ExpensesPage() {
                 <Combobox
                     options={categoryOptions}
                     value={newPurchase.categoryId}
+                    displayValue={newPurchase.categoryName}
                     onSelect={(value, label) => setNewPurchase({...newPurchase, categoryId: value, categoryName: label, materialId: '', materialName: ''})}
                     onCreate={(inputValue) => setNewPurchase({...newPurchase, categoryId: '', categoryName: inputValue, materialId: '', materialName: ''})}
                     placeholder="Selecione ou crie"
@@ -198,6 +204,7 @@ export default function ExpensesPage() {
                         return !newPurchase.categoryId || material?.categoryId === newPurchase.categoryId
                     })}
                     value={newPurchase.materialId}
+                    displayValue={newPurchase.materialName}
                     onSelect={(value, label) => setNewPurchase({...newPurchase, materialId: value, materialName: label})}
                     onCreate={(inputValue) => setNewPurchase({...newPurchase, materialId: '', materialName: inputValue})}
                     placeholder="Selecione ou crie"
