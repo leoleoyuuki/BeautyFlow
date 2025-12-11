@@ -13,6 +13,7 @@ import {
   PanelLeft,
   KeyRound,
   ShoppingBasket,
+  Boxes,
 } from 'lucide-react';
 
 import {
@@ -42,6 +43,7 @@ const navItems = [
   { href: '/renewals', icon: BellRing, label: 'Renovações' },
   { href: '/services', icon: List, label: 'Serviços' },
   { href: '/expenses', icon: ShoppingBasket, label: 'Gastos' },
+  { href: '/stock', icon: Boxes, label: 'Estoque' },
 ];
 
 const adminNavItems = [
@@ -106,7 +108,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
-             <SidebarMenuItem>
+            <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleSignOut} className="justify-start">
                     <LogOut className="shrink-0" />
                     <span>Sair</span>
@@ -158,4 +160,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </SidebarProvider>
     )
 }
-

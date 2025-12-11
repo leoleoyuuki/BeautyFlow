@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlusCircle } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, runTransaction, DocumentReference } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { MaterialPurchase, Material, MaterialCategory } from '@/lib/types';
 import {
@@ -31,10 +31,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function ExpensesPage() {
   const { firestore, user } = useFirebase();
+  const { toast } = useToast();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const initialPurchaseState = {
@@ -70,74 +72,82 @@ export default function ExpensesPage() {
   const { data: categories, isLoading: isLoadingCategories } = useCollection<MaterialCategory>(categoriesCollection);
 
  const handleAddPurchase = async () => {
-    if (!user || !materialsCollection || !categoriesCollection || !purchasesCollection) return;
+    if (!user || !materialsCollection || !categoriesCollection || !purchasesCollection || !firestore) return;
 
     let materialId = newPurchase.materialId;
     let categoryId = newPurchase.categoryId;
 
-    // Create new category if it doesn't exist
-    if (!categoryId && newPurchase.categoryName) {
-      const existingCategory = categories?.find(c => c.name.toLowerCase() === newPurchase.categoryName.toLowerCase());
-      if (existingCategory) {
-        categoryId = existingCategory.id;
-      } else {
-        const categoryDoc = await addDoc(categoriesCollection, {
-          name: newPurchase.categoryName,
-          professionalId: user.uid,
+    try {
+        if (!categoryId && newPurchase.categoryName) {
+            const existingCategory = categories?.find(c => c.name.toLowerCase() === newPurchase.categoryName.toLowerCase().trim());
+            if (existingCategory) {
+                categoryId = existingCategory.id;
+            } else {
+                const categoryDoc = await addDoc(categoriesCollection, { name: newPurchase.categoryName.trim(), professionalId: user.uid });
+                categoryId = categoryDoc.id;
+            }
+        }
+        
+        if (!categoryId) {
+            toast({ variant: "destructive", title: "Erro", description: "A categoria é obrigatória." });
+            return;
+        }
+
+        if (!materialId && newPurchase.materialName) {
+            const existingMaterial = materials?.find(m => m.name.toLowerCase() === newPurchase.materialName.toLowerCase().trim());
+            if (existingMaterial) {
+                materialId = existingMaterial.id;
+            } else {
+                const materialDoc = await addDoc(materialsCollection, { name: newPurchase.materialName.trim(), categoryId: categoryId, professionalId: user.uid, stock: 0 });
+                materialId = materialDoc.id;
+            }
+        }
+        
+        if (!materialId) {
+            toast({ variant: "destructive", title: "Erro", description: "O material é obrigatório." });
+            return;
+        }
+        
+        const materialRef = doc(materialsCollection, materialId) as DocumentReference<Material>;
+
+        await runTransaction(firestore, async (transaction) => {
+            const materialSnap = await transaction.get(materialRef);
+            if (!materialSnap.exists()) {
+                throw new Error("Material não encontrado!");
+            }
+
+            const newStock = (materialSnap.data()?.stock || 0) + Number(newPurchase.quantity);
+            transaction.update(materialRef, { stock: newStock });
+            
+            const purchaseToAdd = {
+                materialId: materialId,
+                quantity: Number(newPurchase.quantity),
+                totalPrice: newPurchase.totalPrice,
+                purchaseDate: new Date(newPurchase.purchaseDate).toISOString(),
+                professionalId: user.uid,
+            };
+            const purchaseRef = doc(purchasesCollection);
+            transaction.set(purchaseRef, purchaseToAdd);
         });
-        categoryId = categoryDoc.id;
-      }
+
+        toast({ title: "Sucesso!", description: "Compra registrada e estoque atualizado." });
+        setNewPurchase(initialPurchaseState);
+        setAddDialogOpen(false);
+    } catch (error) {
+        console.error("Erro ao adicionar compra:", error);
+        const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+        toast({ variant: "destructive", title: "Falha ao registrar", description: errorMessage });
     }
-    
-    if (!categoryId) {
-        // Here you might want to show a toast or error message
-        console.error("Category is required");
-        return;
-    }
-
-    // Create new material if it doesn't exist
-    if (!materialId && newPurchase.materialName) {
-       const existingMaterial = materials?.find(m => m.name.toLowerCase() === newPurchase.materialName.toLowerCase());
-       if (existingMaterial) {
-         materialId = existingMaterial.id;
-       } else {
-          const materialDoc = await addDoc(materialsCollection, {
-            name: newPurchase.materialName,
-            categoryId: categoryId,
-            professionalId: user.uid,
-            stock: 0, // Initial stock
-          });
-          materialId = materialDoc.id;
-       }
-    }
-    
-    if (!materialId) {
-        console.error("Material is required");
-        return;
-    }
-
-
-    // Add the purchase record
-    const purchaseToAdd = {
-      materialId: materialId,
-      quantity: Number(newPurchase.quantity),
-      totalPrice: newPurchase.totalPrice,
-      purchaseDate: new Date(newPurchase.purchaseDate).toISOString(),
-      professionalId: user.uid,
-    };
-
-    addDocumentNonBlocking(purchasesCollection, purchaseToAdd);
-
-    // TODO: Update material stock
-
-    setNewPurchase(initialPurchaseState);
-    setAddDialogOpen(false);
   };
 
   const materialOptions = useMemo(() => materials?.map(m => ({ value: m.id, label: m.name })) || [], [materials]);
   const categoryOptions = useMemo(() => categories?.map(c => ({ value: c.id, label: c.name })) || [], [categories]);
 
   const getMaterialName = (id: string) => materials?.find(m => m.id === id)?.name || '...';
+  
+  const sortedPurchases = useMemo(() => {
+    return purchases?.sort((a,b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()) || [];
+  }, [purchases]);
 
   return (
     <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
@@ -158,7 +168,7 @@ export default function ExpensesPage() {
             <DialogHeader>
               <DialogTitle>Registrar Compra de Material</DialogTitle>
               <DialogDescription>
-                Preencha os detalhes da sua nova compra.
+                Preencha os detalhes da sua nova compra. O estoque será atualizado automaticamente.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -169,8 +179,8 @@ export default function ExpensesPage() {
                 <Combobox
                     options={categoryOptions}
                     value={newPurchase.categoryId}
-                    onSelect={(value, label) => setNewPurchase({...newPurchase, categoryId: value, categoryName: label})}
-                    onCreate={(inputValue) => setNewPurchase({...newPurchase, categoryId: '', categoryName: inputValue})}
+                    onSelect={(value, label) => setNewPurchase({...newPurchase, categoryId: value, categoryName: label, materialId: '', materialName: ''})}
+                    onCreate={(inputValue) => setNewPurchase({...newPurchase, categoryId: '', categoryName: inputValue, materialId: '', materialName: ''})}
                     placeholder="Selecione ou crie"
                     createText="Criar nova categoria"
                     searchPlaceholder="Buscar categoria..."
@@ -183,7 +193,10 @@ export default function ExpensesPage() {
                   Material
                 </Label>
                 <Combobox
-                    options={materialOptions}
+                    options={materialOptions.filter(m => {
+                        const material = materials?.find(mat => mat.id === m.value);
+                        return !newPurchase.categoryId || material?.categoryId === newPurchase.categoryId
+                    })}
                     value={newPurchase.materialId}
                     onSelect={(value, label) => setNewPurchase({...newPurchase, materialId: value, materialName: label})}
                     onCreate={(inputValue) => setNewPurchase({...newPurchase, materialId: '', materialName: inputValue})}
@@ -192,6 +205,7 @@ export default function ExpensesPage() {
                     searchPlaceholder="Buscar material..."
                     notFoundText="Nenhum material encontrado."
                     className="col-span-3"
+                    disabled={!newPurchase.categoryId && !newPurchase.categoryName}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -244,20 +258,20 @@ export default function ExpensesPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Data da Compra</TableHead>
                                 <TableHead>Material</TableHead>
                                 <TableHead>Quantidade</TableHead>
                                 <TableHead>Preço Total</TableHead>
-                                <TableHead>Data da Compra</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoadingPurchases && <TableRow><TableCell colSpan={4} className="text-center">Carregando...</TableCell></TableRow>}
-                            {purchases?.map(p => (
+                            {sortedPurchases.map(p => (
                                 <TableRow key={p.id}>
+                                    <TableCell>{formatDate(p.purchaseDate)}</TableCell>
                                     <TableCell>{getMaterialName(p.materialId)}</TableCell>
                                     <TableCell>{p.quantity}</TableCell>
                                     <TableCell>{formatCurrency(p.totalPrice)}</TableCell>
-                                    <TableCell>{formatDate(p.purchaseDate)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -267,6 +281,29 @@ export default function ExpensesPage() {
         </Card>
       </div>
       
+       <div className="grid gap-4 md:hidden">
+        {(isLoadingPurchases || isLoadingMaterials) && <p className="text-center">Carregando...</p>}
+        {sortedPurchases.map((purchase) => (
+            <Card key={purchase.id}>
+                <CardHeader>
+                    <CardTitle className="text-lg flex justify-between items-center">
+                        <span>{getMaterialName(purchase.materialId)}</span>
+                        <span className="text-base font-medium">{formatCurrency(purchase.totalPrice)}</span>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-2">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Quantidade:</span>
+                        <span>{purchase.quantity}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Data:</span>
+                        <span>{formatDate(purchase.purchaseDate)}</span>
+                    </div>
+                </CardContent>
+            </Card>
+        ))}
+       </div>
     </div>
   );
 }
