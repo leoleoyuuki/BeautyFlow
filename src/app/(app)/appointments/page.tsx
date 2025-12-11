@@ -225,6 +225,9 @@ export default function AppointmentsPage() {
         <Dialog open={open} onOpenChange={onOpenChange}>
           <DialogTrigger asChild>{trigger}</DialogTrigger>
           <DialogContent className="w-auto">
+            <DialogHeader>
+              <DialogTitle className="sr-only">Escolha uma data</DialogTitle>
+            </DialogHeader>
             <Calendar
               mode="single"
               selected={date}
