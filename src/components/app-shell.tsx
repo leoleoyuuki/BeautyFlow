@@ -108,6 +108,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+             <SidebarSeparator className="my-1" />
             <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleSignOut} className="justify-start">
                     <LogOut className="shrink-0" />
