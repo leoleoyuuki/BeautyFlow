@@ -101,7 +101,7 @@ export default function ExpensesPage() {
             if (existingMaterial) {
                 localPurchaseState.materialId = existingMaterial.id;
             } else {
-                if(!localPurchaseState.unitOfMeasure) {
+                if(!localPurchaseState.unitOfMeasure && trimmedCategoryName.toLowerCase() !== 'contas') {
                     toast({ variant: "destructive", title: "Erro", description: "A unidade de medida é obrigatória para novos materiais." });
                     return;
                 }
@@ -172,6 +172,8 @@ export default function ExpensesPage() {
   }, [purchases]);
 
   const isCreatingNewMaterial = !!(newPurchase.materialName && !newPurchase.materialId && !materials?.some(m => m.name.toLowerCase() === newPurchase.materialName.toLowerCase()));
+  const showUnitOfMeasure = isCreatingNewMaterial && newPurchase.categoryName.toLowerCase() !== 'contas';
+
 
   return (
     <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
@@ -235,7 +237,7 @@ export default function ExpensesPage() {
                 />
               </div>
 
-              {isCreatingNewMaterial && (
+              {showUnitOfMeasure && (
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="unitOfMeasure" className="text-right">
                     Unidade
