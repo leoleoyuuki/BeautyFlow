@@ -77,8 +77,8 @@ export default function ExpensesPage() {
     let localPurchaseState = { ...newPurchase };
     
     try {
-        if (!localPurchaseState.categoryId && localPurchaseState.categoryName) {
-            const trimmedCategoryName = localPurchaseState.categoryName.trim();
+        const trimmedCategoryName = localPurchaseState.categoryName.trim();
+        if (!localPurchaseState.categoryId && trimmedCategoryName) {
             const existingCategory = categories?.find(c => c.name.toLowerCase() === trimmedCategoryName.toLowerCase());
             if (existingCategory) {
                 localPurchaseState.categoryId = existingCategory.id;
@@ -86,7 +86,7 @@ export default function ExpensesPage() {
                 const categoryDoc = await addDoc(categoriesCollection, { name: trimmedCategoryName, professionalId: user.uid });
                 localPurchaseState.categoryId = categoryDoc.id;
             }
-            setNewPurchase(prev => ({...prev, categoryId: localPurchaseState.categoryId}));
+            setNewPurchase(prev => ({...prev, categoryId: localPurchaseState.categoryId, categoryName: trimmedCategoryName}));
         }
         
         if (!localPurchaseState.categoryId) {
@@ -94,8 +94,8 @@ export default function ExpensesPage() {
             return;
         }
 
-        if (!localPurchaseState.materialId && localPurchaseState.materialName) {
-            const trimmedMaterialName = localPurchaseState.materialName.trim();
+        const trimmedMaterialName = localPurchaseState.materialName.trim();
+        if (!localPurchaseState.materialId && trimmedMaterialName) {
             const existingMaterial = materials?.find(m => m.name.toLowerCase() === trimmedMaterialName.toLowerCase());
             
             if (existingMaterial) {
@@ -115,7 +115,7 @@ export default function ExpensesPage() {
                 const materialDoc = await addDoc(materialsCollection, materialData);
                 localPurchaseState.materialId = materialDoc.id;
             }
-            setNewPurchase(prev => ({...prev, materialId: localPurchaseState.materialId}));
+            setNewPurchase(prev => ({...prev, materialId: localPurchaseState.materialId, materialName: trimmedMaterialName}));
         }
         
         if (!localPurchaseState.materialId) {
@@ -123,29 +123,36 @@ export default function ExpensesPage() {
             return;
         }
         
-        const materialRef = doc(materialsCollection, localPurchaseState.materialId) as DocumentReference<Material>;
+        const purchaseToAdd = {
+            materialId: localPurchaseState.materialId,
+            quantity: Number(localPurchaseState.quantity),
+            totalPrice: localPurchaseState.totalPrice,
+            purchaseDate: new Date(localPurchaseState.purchaseDate).toISOString(),
+            professionalId: user.uid,
+        };
 
-        await runTransaction(firestore, async (transaction) => {
-            const materialSnap = await transaction.get(materialRef);
-            if (!materialSnap.exists()) {
-                throw new Error("Material não encontrado!");
-            }
+        // Only update stock if the category is not "Contas"
+        if (trimmedCategoryName.toLowerCase() !== 'contas') {
+            const materialRef = doc(materialsCollection, localPurchaseState.materialId) as DocumentReference<Material>;
+            await runTransaction(firestore, async (transaction) => {
+                const materialSnap = await transaction.get(materialRef);
+                if (!materialSnap.exists()) {
+                    throw new Error("Material não encontrado!");
+                }
 
-            const newStock = (materialSnap.data()?.stock || 0) + Number(localPurchaseState.quantity);
-            transaction.update(materialRef, { stock: newStock });
-            
-            const purchaseToAdd = {
-                materialId: localPurchaseState.materialId,
-                quantity: Number(localPurchaseState.quantity),
-                totalPrice: localPurchaseState.totalPrice,
-                purchaseDate: new Date(localPurchaseState.purchaseDate).toISOString(),
-                professionalId: user.uid,
-            };
-            const purchaseRef = doc(purchasesCollection);
-            transaction.set(purchaseRef, purchaseToAdd);
-        });
+                const newStock = (materialSnap.data()?.stock || 0) + Number(localPurchaseState.quantity);
+                transaction.update(materialRef, { stock: newStock });
+                
+                const purchaseRef = doc(purchasesCollection);
+                transaction.set(purchaseRef, purchaseToAdd);
+            });
+            toast({ title: "Sucesso!", description: "Compra registrada e estoque atualizado." });
+        } else {
+            // For "Contas", just add the purchase record without a transaction
+            await addDoc(purchasesCollection, purchaseToAdd);
+            toast({ title: "Sucesso!", description: "Despesa registrada." });
+        }
 
-        toast({ title: "Sucesso!", description: "Compra registrada e estoque atualizado." });
         setNewPurchase(initialPurchaseState);
         setAddDialogOpen(false);
     } catch (error) {
@@ -185,7 +192,7 @@ export default function ExpensesPage() {
             <DialogHeader>
               <DialogTitle>Registrar Compra de Material</DialogTitle>
               <DialogDescription>
-                Preencha os detalhes da sua nova compra. O estoque será atualizado automaticamente.
+                Preencha os detalhes da sua nova compra. O estoque será atualizado automaticamente, exceto para a categoria "Contas".
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -342,3 +349,5 @@ export default function ExpensesPage() {
     </div>
   );
 }
+
+    

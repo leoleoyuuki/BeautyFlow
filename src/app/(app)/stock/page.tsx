@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MinusCircle, PlusCircle, Pencil, Save, X } from 'lucide-react';
+import { Minus, Plus, Pencil, Save, X } from 'lucide-react';
 import type { Material, MaterialCategory } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
@@ -77,8 +77,9 @@ export default function StockPage() {
   };
 
   const sortedMaterials = useMemo(() => {
-    return materials?.sort((a,b) => a.name.localeCompare(b.name)) || [];
-  }, [materials]);
+    const nonContasCategories = categories?.filter(c => c.name.toLowerCase() !== 'contas').map(c => c.id) || [];
+    return materials?.filter(m => nonContasCategories.includes(m.categoryId)).sort((a,b) => a.name.localeCompare(b.name)) || [];
+  }, [materials, categories]);
 
   const getStockBadgeVariant = (stock: number) => {
     if (stock <= 5) return 'destructive';
@@ -118,14 +119,14 @@ export default function StockPage() {
                             <TableCell>
                                 {editingRowId === material.id ? (
                                      <div className="flex items-center gap-2 max-w-[150px]">
-                                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, -1)}><MinusCircle className="h-4 w-4" /></Button>
+                                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, -1)}><Minus className="h-4 w-4" /></Button>
                                         <Input 
                                             type="number" 
                                             value={editingStock[material.id] ?? ''} 
                                             onChange={(e) => handleStockChange(material.id, e.target.value)}
                                             className="h-8 w-16 text-center"
                                         />
-                                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, 1)}><PlusCircle className="h-4 w-4"/></Button>
+                                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, 1)}><Plus className="h-4 w-4"/></Button>
                                      </div>
                                 ) : (
                                     <Badge variant={getStockBadgeVariant(material.stock)}>{material.stock} {material.unitOfMeasure}</Badge>
@@ -185,14 +186,14 @@ export default function StockPage() {
                 <CardContent>
                    {editingRowId === material.id ? (
                         <div className="flex items-center gap-2">
-                           <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, -1)}><MinusCircle className="h-4 w-4" /></Button>
+                           <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, -1)}><Minus className="h-4 w-4" /></Button>
                             <Input 
                                 type="number" 
                                 value={editingStock[material.id] ?? ''} 
                                 onChange={(e) => handleStockChange(material.id, e.target.value)}
                                 className="h-8 flex-1 text-center"
                             />
-                             <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, 1)}><PlusCircle className="h-4 w-4"/></Button>
+                             <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, 1)}><Plus className="h-4 w-4"/></Button>
                         </div>
                    ) : (
                         <div className="flex items-center">
@@ -207,3 +208,5 @@ export default function StockPage() {
     </div>
   );
 }
+
+    
