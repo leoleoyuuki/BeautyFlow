@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { useFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { addMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,6 +69,15 @@ export default function ActivatePage() {
             };
 
             await setDoc(professionalRef, dataToSave, { merge: true });
+
+            // Create default "Contas" category if it doesn't exist
+            const categoriesCollectionRef = collection(firestore, 'professionals', user.uid, 'materialCategories');
+            const q = query(categoriesCollectionRef, where("name", "==", "Contas"));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                await addDoc(categoriesCollectionRef, { name: "Contas", professionalId: user.uid });
+            }
 
             toast({
                 title: 'Sucesso! ✨',
