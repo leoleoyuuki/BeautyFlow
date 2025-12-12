@@ -128,7 +128,7 @@ export default function StockPage() {
                                         <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, 1)}><PlusCircle className="h-4 w-4"/></Button>
                                      </div>
                                 ) : (
-                                    <Badge variant={getStockBadgeVariant(material.stock)}>{material.stock} unidades</Badge>
+                                    <Badge variant={getStockBadgeVariant(material.stock)}>{material.stock} {material.unitOfMeasure}</Badge>
                                 )}
                             </TableCell>
                             <TableCell className="text-right">
@@ -197,7 +197,7 @@ export default function StockPage() {
                    ) : (
                         <div className="flex items-center">
                             <span className="text-sm text-muted-foreground mr-2">Estoque:</span>
-                            <Badge variant={getStockBadgeVariant(material.stock)}>{material.stock} unidades</Badge>
+                            <Badge variant={getStockBadgeVariant(material.stock)}>{material.stock} {material.unitOfMeasure}</Badge>
                         </div>
                    )}
                 </CardContent>

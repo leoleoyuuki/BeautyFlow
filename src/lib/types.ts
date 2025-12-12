@@ -55,6 +55,7 @@ export type Material = {
     name: string;
     categoryId: string;
     stock: number;
+    unitOfMeasure: string;
 };
 
 export type MaterialPurchase = {
@@ -65,4 +66,5 @@ export type MaterialPurchase = {
     totalPrice: number;
     purchaseDate: string; // ISO string
 };
+
 

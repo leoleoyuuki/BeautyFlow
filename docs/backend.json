@@ -202,9 +202,10 @@
         "professionalId": { "type": "string" },
         "name": { "type": "string" },
         "categoryId": { "type": "string" },
-        "stock": { "type": "number" }
+        "stock": { "type": "number" },
+        "unitOfMeasure": { "type": "string" }
       },
-      "required": ["id", "professionalId", "name", "categoryId"]
+      "required": ["id", "professionalId", "name", "categoryId", "unitOfMeasure"]
     },
     "MaterialPurchase": {
       "$schema": "http://json-schema.org/draft-07/schema#",

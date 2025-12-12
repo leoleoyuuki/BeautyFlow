@@ -17,7 +17,6 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, doc, runTransaction, DocumentReference } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { MaterialPurchase, Material, MaterialCategory } from '@/lib/types';
 import {
   Table,
@@ -42,6 +41,7 @@ export default function ExpensesPage() {
   const initialPurchaseState = {
     materialId: '',
     materialName: '',
+    unitOfMeasure: '',
     categoryId: '',
     categoryName: '',
     quantity: 1,
@@ -86,7 +86,6 @@ export default function ExpensesPage() {
                 const categoryDoc = await addDoc(categoriesCollection, { name: trimmedCategoryName, professionalId: user.uid });
                 localPurchaseState.categoryId = categoryDoc.id;
             }
-            // Update state to reflect the new category selection
             setNewPurchase(prev => ({...prev, categoryId: localPurchaseState.categoryId}));
         }
         
@@ -98,13 +97,24 @@ export default function ExpensesPage() {
         if (!localPurchaseState.materialId && localPurchaseState.materialName) {
             const trimmedMaterialName = localPurchaseState.materialName.trim();
             const existingMaterial = materials?.find(m => m.name.toLowerCase() === trimmedMaterialName.toLowerCase());
+            
             if (existingMaterial) {
                 localPurchaseState.materialId = existingMaterial.id;
             } else {
-                const materialDoc = await addDoc(materialsCollection, { name: trimmedMaterialName, categoryId: localPurchaseState.categoryId, professionalId: user.uid, stock: 0 });
+                if(!localPurchaseState.unitOfMeasure) {
+                    toast({ variant: "destructive", title: "Erro", description: "A unidade de medida é obrigatória para novos materiais." });
+                    return;
+                }
+                const materialData = { 
+                    name: trimmedMaterialName, 
+                    categoryId: localPurchaseState.categoryId, 
+                    professionalId: user.uid, 
+                    stock: 0,
+                    unitOfMeasure: localPurchaseState.unitOfMeasure,
+                };
+                const materialDoc = await addDoc(materialsCollection, materialData);
                 localPurchaseState.materialId = materialDoc.id;
             }
-             // Update state to reflect the new material selection
             setNewPurchase(prev => ({...prev, materialId: localPurchaseState.materialId}));
         }
         
@@ -153,6 +163,8 @@ export default function ExpensesPage() {
   const sortedPurchases = useMemo(() => {
     return purchases?.sort((a,b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()) || [];
   }, [purchases]);
+
+  const isCreatingNewMaterial = !!(newPurchase.materialName && !newPurchase.materialId && !materials?.some(m => m.name.toLowerCase() === newPurchase.materialName.toLowerCase()));
 
   return (
     <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
@@ -215,6 +227,22 @@ export default function ExpensesPage() {
                     disabled={!newPurchase.categoryId && !newPurchase.categoryName}
                 />
               </div>
+
+              {isCreatingNewMaterial && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="unitOfMeasure" className="text-right">
+                    Unidade
+                    </Label>
+                    <Input
+                    id="unitOfMeasure"
+                    value={newPurchase.unitOfMeasure}
+                    onChange={(e) => setNewPurchase({ ...newPurchase, unitOfMeasure: e.target.value })}
+                    className="col-span-3"
+                    placeholder="Ex: un, ml, g"
+                    />
+                </div>
+              )}
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="quantity" className="text-right">
                   Quantidade
