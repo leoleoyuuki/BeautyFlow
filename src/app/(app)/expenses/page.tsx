@@ -31,6 +31,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Loader } from '@/components/ui/loader';
 
 
 export default function ExpensesPage() {
@@ -309,7 +310,7 @@ export default function ExpensesPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {isLoadingPurchases && <TableRow><TableCell colSpan={4} className="text-center">Carregando...</TableCell></TableRow>}
+                            {isLoadingPurchases && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                             {sortedPurchases.map(p => (
                                 <TableRow key={p.id}>
                                     <TableCell>{formatDate(p.purchaseDate)}</TableCell>
@@ -326,7 +327,7 @@ export default function ExpensesPage() {
       </div>
       
        <div className="grid gap-4 md:hidden">
-        {(isLoadingPurchases || isLoadingMaterials) && <p className="text-center">Carregando...</p>}
+        {(isLoadingPurchases || isLoadingMaterials) && <Loader />}
         {sortedPurchases.map((purchase) => (
             <Card key={purchase.id}>
                 <CardHeader>

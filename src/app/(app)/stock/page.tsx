@@ -18,6 +18,7 @@ import { Minus, Plus, Pencil, Save, X } from 'lucide-react';
 import type { Material, MaterialCategory } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
+import { Loader } from '@/components/ui/loader';
 
 export default function StockPage() {
   const { firestore, user } = useFirebase();
@@ -111,7 +112,7 @@ export default function StockPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {isLoading && <TableRow><TableCell colSpan={4} className="text-center">Carregando...</TableCell></TableRow>}
+                    {isLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                     {sortedMaterials.map((material) => (
                         <TableRow key={material.id}>
                             <TableCell className="font-medium whitespace-nowrap">{material.name}</TableCell>
@@ -160,7 +161,7 @@ export default function StockPage() {
 
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
-        {isLoading && <p className="text-center">Carregando...</p>}
+        {isLoading && <Loader />}
         {sortedMaterials.map((material) => (
             <Card key={material.id}>
                 <CardHeader>

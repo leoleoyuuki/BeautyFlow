@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import type { ActivationToken, Professional } from '@/lib/types';
 import { Logo } from '@/components/icons/logo';
+import { FullscreenLoader } from '@/components/ui/loader';
 
 export default function ActivatePage() {
     const { firestore, user, isUserLoading } = useFirebase();
@@ -100,7 +101,7 @@ export default function ActivatePage() {
     };
     
     if (isUserLoading) {
-        return <div className="flex h-screen items-center justify-center">Carregando...</div>;
+        return <FullscreenLoader />;
     }
 
     return (

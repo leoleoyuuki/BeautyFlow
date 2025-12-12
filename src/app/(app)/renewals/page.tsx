@@ -19,6 +19,7 @@ import { MessageSquare } from 'lucide-react';
 import type { Client, Service, Appointment } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { Loader } from '@/components/ui/loader';
 
 export default function RenewalsPage() {
   const { firestore, user } = useFirebase();
@@ -100,7 +101,7 @@ export default function RenewalsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading && <TableRow><TableCell colSpan={6} className="text-center">Carregando...</TableCell></TableRow>}
+                  {isLoading && <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                   {renewals.map((renewal) => {
                     const client = allClients?.find(c => c.id === renewal.clientId);
                     const service = allServices?.find(s => s.id === renewal.serviceId);
@@ -135,7 +136,7 @@ export default function RenewalsPage() {
 
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
-        {isLoading && <p className="text-center">Carregando...</p>}
+        {isLoading && <Loader />}
         {renewals.map((renewal) => {
             const client = allClients?.find(c => c.id === renewal.clientId);
             const service = allServices?.find(s => s.id === renewal.serviceId);

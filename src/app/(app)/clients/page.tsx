@@ -39,6 +39,7 @@ import type { Client } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Loader } from '@/components/ui/loader';
 
 export default function ClientsPage() {
   const { firestore, user } = useFirebase();
@@ -200,7 +201,7 @@ export default function ClientsPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {isLoading && <TableRow><TableCell colSpan={3} className="text-center">Carregando...</TableCell></TableRow>}
+                    {isLoading && <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                     {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
                         <TableRow key={client.id}>
                         <TableCell className="font-medium whitespace-nowrap">{client.name}</TableCell>
@@ -242,7 +243,7 @@ export default function ClientsPage() {
 
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
-        {isLoading && <p className="text-center">Carregando...</p>}
+        {isLoading && <Loader />}
         {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
             <Card key={client.id}>
                 <CardHeader>

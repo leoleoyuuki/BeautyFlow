@@ -33,6 +33,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Logo } from './icons/logo';
 import { useFirebase } from '@/firebase';
+import { FullscreenLoader } from '@/components/ui/loader';
 
 const ADMIN_UID = 'fE4wQQun2zgDr39cwH0AKoOADkT2';
 
@@ -57,11 +58,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const isAdmin = user?.uid === ADMIN_UID;
 
   if (isUserLoading) {
-    return (
-        <div className="flex items-center justify-center h-screen">
-            <div className="text-2xl font-bold">Carregando...</div>
-        </div>
-    );
+    return <FullscreenLoader />;
   }
   
   const handleSignOut = () => {

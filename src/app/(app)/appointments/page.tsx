@@ -48,6 +48,7 @@ import { ptBR } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Loader } from '@/components/ui/loader';
 
 export default function AppointmentsPage() {
   const { firestore, user } = useFirebase();
@@ -591,7 +592,7 @@ export default function AppointmentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={5} className="text-center">Carregando...</TableCell></TableRow>}
+                  {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                   {sortedAppointments.map((appointment) => {
                     const client = clients?.find(c => c.id === appointment.clientId);
                     const service = services?.find(s => s.id === appointment.serviceId);
@@ -639,7 +640,7 @@ export default function AppointmentsPage() {
 
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
-        {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <p className="text-center">Carregando...</p>}
+        {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <Loader />}
         {sortedAppointments.map((appointment) => {
             const client = clients?.find(c => c.id === appointment.clientId);
             const service = services?.find(s => s.id === appointment.serviceId);

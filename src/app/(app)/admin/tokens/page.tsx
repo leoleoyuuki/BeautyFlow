@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Copy, Check } from 'lucide-react';
 import type { ActivationToken } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
+import { FullscreenLoader, Loader } from '@/components/ui/loader';
 
 const ADMIN_UID = 'fE4wQQun2zgDr39cwH0AKoOADkT2';
 
@@ -55,7 +56,7 @@ export default function TokenGeneratorPage() {
 
 
   if (isUserLoading) {
-    return <div className="flex h-screen items-center justify-center">Carregando...</div>;
+    return <FullscreenLoader />;
   }
   
   if (!user || user.uid !== ADMIN_UID) {
@@ -123,7 +124,7 @@ export default function TokenGeneratorPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoadingTokens && <TableRow><TableCell colSpan={5} className="text-center">Carregando...</TableCell></TableRow>}
+                        {isLoadingTokens && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                         {sortedTokens?.map(token => (
                             <TableRow key={token.id}>
                                 <TableCell className="font-mono">{token.id}</TableCell>
@@ -141,7 +142,7 @@ export default function TokenGeneratorPage() {
                 </Table>
              </div>
              <div className="grid gap-4 md:hidden">
-                {isLoadingTokens && <p className="text-center">Carregando...</p>}
+                {isLoadingTokens && <Loader />}
                 {sortedTokens?.map(token => (
                     <Card key={token.id}>
                          <CardHeader>

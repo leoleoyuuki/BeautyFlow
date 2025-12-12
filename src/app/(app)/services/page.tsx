@@ -42,6 +42,7 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlo
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { formatCurrency } from '@/lib/utils';
+import { Loader } from '@/components/ui/loader';
 
 
 export default function ServicesPage() {
@@ -229,7 +230,7 @@ export default function ServicesPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {isLoading && <TableRow><TableCell colSpan={4} className="text-center">Carregando...</TableCell></TableRow>}
+                    {isLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                     {services?.sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
                     <TableRow key={service.id}>
                         <TableCell className="font-medium whitespace-nowrap">{service.name}</TableCell>
@@ -272,7 +273,7 @@ export default function ServicesPage() {
 
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
-        {isLoading && <p className="text-center">Carregando...</p>}
+        {isLoading && <Loader />}
         {services?.sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
           <Card key={service.id}>
             <CardHeader>

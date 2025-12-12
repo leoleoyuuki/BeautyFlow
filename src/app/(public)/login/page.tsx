@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useFirebase } from "@/firebase";
 import { initiateGoogleSignIn } from "@/firebase/non-blocking-login";
 import { Logo } from "@/components/icons/logo";
+import { FullscreenLoader } from "@/components/ui/loader";
 
 export default function LoginPage() {
   const { auth, isUserLoading } = useFirebase();
@@ -17,11 +18,7 @@ export default function LoginPage() {
   };
 
   if (isUserLoading) {
-    return (
-        <div className="flex items-center justify-center h-screen">
-            <div className="text-2xl font-bold">Carregando...</div>
-        </div>
-    );
+    return <FullscreenLoader />;
   }
 
   return (
