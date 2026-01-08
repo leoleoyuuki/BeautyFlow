@@ -69,7 +69,15 @@ export type MaterialPurchase = {
     purchaseDate: string; // ISO string
 };
 
-
+export type Summary = {
+    id?: string;
+    totalRevenue: number;
+    totalClients: number;
+    totalAppointments: number;
+    monthlyRevenue: { [key: string]: number }; // e.g., {'2024-07': 1500.50}
+    newClientsPerMonth: { [key: string]: number }; // e.g., {'2024-07': 10}
+    serviceCounts: { [key: string]: number }; // e.g., {'serviceId1': 25}
+};
 
 
     

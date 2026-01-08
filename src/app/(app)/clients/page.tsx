@@ -37,9 +37,10 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle, Pencil, Phone, Trash } from 'lucide-react';
 import type { Client } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Loader } from '@/components/ui/loader';
+import { handleAddClientSummary, handleDeleteClientSummary } from '@/firebase/summary-updates';
 
 const PAGE_SIZE = 15;
 
@@ -60,16 +61,19 @@ export default function ClientsPage() {
 
   const { data: clients, isLoading, loadMore, hasMore } = useCollection<Client>(clientsQuery, PAGE_SIZE);
 
-  const handleAddClient = () => {
-    if (!firestore || !user) return;
+  const handleAddClient = async () => {
+    if (!firestore || !user || !newClient.name) return;
     const clientsCollection = collection(firestore, 'professionals', user.uid, 'clients');
     const clientToAdd = {
       name: newClient.name,
       phoneNumber: newClient.phoneNumber,
-      professionalId: user!.uid,
+      professionalId: user.uid,
       createdAt: new Date().toISOString(),
     };
-    addDocumentNonBlocking(clientsCollection, clientToAdd);
+    const docRef = await addDocumentNonBlocking(clientsCollection, clientToAdd);
+    if (docRef) {
+        handleAddClientSummary(firestore, user.uid, { ...clientToAdd, id: docRef.id });
+    }
     setNewClient({ name: '', phoneNumber: '' });
     setAddDialogOpen(false);
   };
@@ -84,11 +88,19 @@ export default function ClientsPage() {
     setEditDialogOpen(false);
   }
 
-  const handleDeleteClient = () => {
+  const handleDeleteClient = async () => {
     if (!firestore || !user || !deletingClient) return;
-    const clientsCollection = collection(firestore, 'professionals', user.uid, 'clients');
-    const clientDocRef = doc(clientsCollection, deletingClient.id);
-    deleteDocumentNonBlocking(clientDocRef);
+    
+    // We need the full client object to correctly decrement the summary
+    const clientRef = doc(firestore, 'professionals', user.uid, 'clients', deletingClient.id);
+    const clientSnap = await getDoc(clientRef);
+
+    if (clientSnap.exists()) {
+        const clientToDelete = clientSnap.data() as Client;
+        deleteDocumentNonBlocking(clientRef);
+        handleDeleteClientSummary(firestore, user.uid, clientToDelete);
+    }
+    
     setDeletingClient(null);
   };
 
@@ -309,5 +321,3 @@ export default function ClientsPage() {
     </div>
   );
 }
-
-    

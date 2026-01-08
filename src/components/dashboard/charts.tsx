@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -5,29 +6,27 @@ import { Bar, BarChart, Line, LineChart, Pie, PieChart as RechartsPieChart, Resp
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
 import { formatCurrency } from '@/lib/utils';
-import { subMonths, format, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { subMonths, format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Appointment, Client, Service } from '@/lib/types';
+import type { Service, Summary } from '@/lib/types';
 
 interface RevenueChartProps {
   isRevenueVisible: boolean;
-  appointments: Appointment[];
+  summary: Summary | null;
 }
 
-export function RevenueChart({ isRevenueVisible, appointments }: RevenueChartProps) {
+export function RevenueChart({ isRevenueVisible, summary }: RevenueChartProps) {
   const chartData = useMemo(() => {
-    const months = Array.from({ length: 6 }, (_, i) => startOfMonth(subMonths(new Date(), 5 - i)));
-    return months.map(monthStart => {
-      const monthEnd = endOfMonth(monthStart);
-      const monthlyRevenue = appointments
-        .filter(p => p.appointmentDate && isWithinInterval(new Date(p.appointmentDate), { start: monthStart, end: monthEnd }))
-        .reduce((sum, p) => sum + (p.price || 0), 0);
+    if (!summary?.monthlyRevenue) return [];
+    const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
+    return months.map(monthDate => {
+      const monthKey = format(monthDate, 'yyyy-MM');
       return {
-        month: format(monthStart, 'MMM', { locale: ptBR }),
-        revenue: monthlyRevenue,
+        month: format(monthDate, 'MMM', { locale: ptBR }),
+        revenue: summary.monthlyRevenue[monthKey] || 0,
       };
     });
-  }, [appointments]);
+  }, [summary]);
 
   return (
     <Card className="h-full">
@@ -55,24 +54,21 @@ export function RevenueChart({ isRevenueVisible, appointments }: RevenueChartPro
 }
 
 interface NewClientsChartProps {
-    clients: Client[];
+    summary: Summary | null;
 }
 
-export function NewClientsChart({ clients }: NewClientsChartProps) {
+export function NewClientsChart({ summary }: NewClientsChartProps) {
     const chartData = useMemo(() => {
-      const months = Array.from({ length: 6 }, (_, i) => startOfMonth(subMonths(new Date(), 5 - i)));
-      return months.map(monthStart => {
-        const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-        // Assuming client data has a joinDate property
-        const newClientsCount = clients
-          .filter(c => c.createdAt && isWithinInterval(new Date(c.createdAt), { start: monthStart, end: monthEnd }))
-          .length;
-        return {
-          month: format(monthStart, 'MMM', { locale: ptBR }),
-          newClients: newClientsCount,
-        };
-      });
-    }, [clients]);
+       if (!summary?.newClientsPerMonth) return [];
+        const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
+        return months.map(monthDate => {
+            const monthKey = format(monthDate, 'yyyy-MM');
+            return {
+                month: format(monthDate, 'MMM', { locale: ptBR }),
+                newClients: summary.newClientsPerMonth[monthKey] || 0,
+            };
+        });
+    }, [summary]);
   
     return (
       <Card className="h-full">
@@ -96,23 +92,25 @@ export function NewClientsChart({ clients }: NewClientsChartProps) {
   }
 
   interface PopularServicesChartProps {
-    appointments: Appointment[];
+    summary: Summary | null;
     services: Service[];
   }
 
-  export function PopularServicesChart({ appointments, services }: PopularServicesChartProps) {
+  export function PopularServicesChart({ summary, services }: PopularServicesChartProps) {
     const chartData = useMemo(() => {
-      if (!appointments || !services) return [];
-      const serviceCounts = appointments.reduce((acc, p) => {
-        const serviceName = services.find(s => s.id === p.serviceId)?.name || 'Desconhecido';
-        acc[serviceName] = (acc[serviceName] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-  
-      return Object.entries(serviceCounts)
-        .map(([name, value]) => ({ name, value }))
+      if (!summary?.serviceCounts || !services.length) return [];
+      
+      return Object.entries(summary.serviceCounts)
+        .map(([serviceId, count]) => {
+            const service = services.find(s => s.id === serviceId);
+            return {
+                name: service?.name || 'Desconhecido',
+                value: count
+            };
+        })
         .sort((a, b) => b.value - a.value);
-    }, [appointments, services]);
+
+    }, [summary, services]);
 
     const chartConfig = {
         value: { label: 'Vendas' },

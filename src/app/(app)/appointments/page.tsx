@@ -41,8 +41,9 @@ import { CalendarIcon, PlusCircle, Pencil, Trash } from 'lucide-react';
 import { formatDate, cn, formatCurrency } from '@/lib/utils';
 import type { Client, Service, Appointment } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { handleAddAppointmentSummary, handleDeleteAppointmentSummary, handleUpdateAppointmentSummary } from '@/firebase/summary-updates';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
@@ -105,12 +106,12 @@ export default function AppointmentsPage() {
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
   const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesCollection);
 
-  const handleAddAppointment = () => {
+  const handleAddAppointment = async () => {
     if (!firestore || !user || !newAppointment.clientId || !newAppointment.serviceId || !newAppointment.appointmentDate) return;
     const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
     const selectedService = services?.find(s => s.id === newAppointment.serviceId);
 
-    const appointmentToAdd = {
+    const appointmentToAdd: Omit<Appointment, 'id'> = {
       clientId: newAppointment.clientId,
       serviceId: newAppointment.serviceId,
       professionalId: user!.uid,
@@ -118,7 +119,10 @@ export default function AppointmentsPage() {
       validityPeriodMonths: Number(newAppointment.validityPeriodMonths) || 0,
       price: newAppointment.price || selectedService?.price || 0,
     };
-    addDocumentNonBlocking(appointmentsCollection, appointmentToAdd);
+    const docRef = await addDocumentNonBlocking(appointmentsCollection, appointmentToAdd);
+    if(docRef) {
+        handleAddAppointmentSummary(firestore, user.uid, { ...appointmentToAdd, id: docRef.id });
+    }
     setNewAppointment(initialNewAppointmentState);
     setAddDialogOpen(false);
   };
@@ -147,6 +151,7 @@ export default function AppointmentsPage() {
       ...newService,
       price: newService.price || 0,
       professionalId: user!.uid,
+      createdAt: new Date().toISOString(),
     };
     addDocumentNonBlocking(servicesCollection, serviceToAdd)
       .then((docRef) => {
@@ -158,10 +163,15 @@ export default function AppointmentsPage() {
     setAddServiceDialogOpen(false);
   };
 
-  const handleUpdateAppointment = () => {
+  const handleUpdateAppointment = async () => {
     if (!firestore || !user || !editingAppointment) return;
-    const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
-    const appointmentDocRef = doc(appointmentsCollection, editingAppointment.id);
+    
+    const appointmentDocRef = doc(firestore, 'professionals', user.uid, 'appointments', editingAppointment.id);
+
+    // Get the old state of the document for summary calculation
+    const oldDocSnap = await getDoc(appointmentDocRef);
+    if (!oldDocSnap.exists()) return;
+    const oldAppointment = oldDocSnap.data() as Appointment;
 
     const selectedService = services?.find(s => s.id === editingAppointment.serviceId);
     
@@ -179,14 +189,23 @@ export default function AppointmentsPage() {
     const { id, ...appointmentData } = appointmentToUpdate;
     
     updateDocumentNonBlocking(appointmentDocRef, appointmentData);
+    handleUpdateAppointmentSummary(firestore, user.uid, oldAppointment, appointmentToUpdate);
+
     setEditingAppointment(null);
     setEditDialogOpen(false);
 };
 
- const handleDeleteAppointment = () => {
+ const handleDeleteAppointment = async () => {
     if (!firestore || !user || !deletingAppointment) return;
-    const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
-    const appointmentDocRef = doc(appointmentsCollection, deletingAppointment.id);
+    const appointmentDocRef = doc(firestore, 'professionals', user.uid, 'appointments', deletingAppointment.id);
+    
+    // Get the document before deleting to update the summary
+    const oldDocSnap = await getDoc(appointmentDocRef);
+    if (oldDocSnap.exists()) {
+        const oldAppointment = oldDocSnap.data() as Appointment;
+        handleDeleteAppointmentSummary(firestore, user.uid, oldAppointment);
+    }
+    
     deleteDocumentNonBlocking(appointmentDocRef);
     setDeletingAppointment(null);
   };

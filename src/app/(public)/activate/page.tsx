@@ -4,13 +4,13 @@
 import { useState, useMemo } from 'react';
 import { useFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc, setDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, writeBatch, collection } from 'firebase/firestore';
 import { addMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import type { ActivationToken, Professional } from '@/lib/types';
+import type { ActivationToken, Professional, Summary } from '@/lib/types';
 import { Logo } from '@/components/icons/logo';
 import { FullscreenLoader } from '@/components/ui/loader';
 
@@ -37,6 +37,8 @@ export default function ActivatePage() {
         
         const tokenRef = doc(firestore, 'activationTokens', token);
         const professionalRef = doc(firestore, 'professionals', user.uid);
+        const summaryRef = doc(firestore, 'professionals', user.uid, 'summary', 'main');
+        const contasCategoryRef = doc(collection(firestore, 'professionals', user.uid, 'materialCategories'));
 
         try {
             const tokenSnap = await getDoc(tokenRef);
@@ -50,14 +52,7 @@ export default function ActivatePage() {
             const now = new Date();
             const expirationDate = addMonths(now, tokenData.durationMonths);
 
-            // Update token
-            await updateDoc(tokenRef, {
-                isUsed: true,
-                usedAt: now.toISOString(),
-                usedBy: user.uid,
-            });
-
-            // Create or update professional's profile with expiration date
+            // Get existing professional data
             const professionalSnap = await getDoc(professionalRef);
             const professionalData = (professionalSnap.data() as Professional) || {};
             
@@ -69,16 +64,37 @@ export default function ActivatePage() {
                 activationExpiresAt: expirationDate.toISOString(),
             };
 
-            await setDoc(professionalRef, dataToSave, { merge: true });
+            const initialSummary: Summary = {
+                totalRevenue: 0,
+                totalClients: 0,
+                totalAppointments: 0,
+                monthlyRevenue: {},
+                newClientsPerMonth: {},
+                serviceCounts: {},
+            };
+            
+            // Use a batch to perform multiple writes atomically
+            const batch = writeBatch(firestore);
 
-            // Create default "Contas" category if it doesn't exist
-            const categoriesCollectionRef = collection(firestore, 'professionals', user.uid, 'materialCategories');
-            const q = query(categoriesCollectionRef, where("name", "==", "Contas"));
-            const querySnapshot = await getDocs(q);
+            // 1. Update token
+            batch.update(tokenRef, {
+                isUsed: true,
+                usedAt: now.toISOString(),
+                usedBy: user.uid,
+            });
 
-            if (querySnapshot.empty) {
-                await addDoc(categoriesCollectionRef, { name: "Contas", professionalId: user.uid });
-            }
+            // 2. Create or update professional's profile
+            batch.set(professionalRef, dataToSave, { merge: true });
+
+            // 3. Create initial summary document
+            batch.set(summaryRef, initialSummary);
+
+            // 4. Create default "Contas" category
+            batch.set(contasCategoryRef, { name: "Contas", professionalId: user.uid });
+
+            // Commit the batch
+            await batch.commit();
+
 
             toast({
                 title: 'Sucesso! ✨',

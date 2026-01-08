@@ -143,12 +143,32 @@ service cloud.firestore {
       allow delete: if isOwner(professionalId);
     }
 
-     match /professionals/{professionalId}/{subcollection}/{docId} {
+     match /professionals/{professionalId}/materialCategories/{categoryId} {
         function isOwner(professionalId) {
             return request.auth != null && request.auth.uid == professionalId;
         }
 
         allow read, write: if isOwner(professionalId);
+    }
+     match /professionals/{professionalId}/materials/{materialId} {
+        function isOwner(professionalId) {
+            return request.auth != null && request.auth.uid == professionalId;
+        }
+
+        allow read, write: if isOwner(professionalId);
+    }
+     match /professionals/{professionalId}/materialPurchases/{purchaseId} {
+        function isOwner(professionalId) {
+            return request.auth != null && request.auth.uid == professionalId;
+        }
+
+        allow read, write: if isOwner(professionalId);
+    }
+    match /professionals/{professionalId}/summary/{summaryId} {
+      function isOwner(professionalId) {
+        return request.auth != null && request.auth.uid == professionalId;
+      }
+      allow read, write: if isOwner(professionalId);
     }
 
     /**

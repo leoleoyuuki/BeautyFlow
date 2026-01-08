@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,9 +11,10 @@ import {
 } from '@/components/dashboard/charts';
 import { StatsCards } from '@/components/dashboard/stats-cards';
 import { UpcomingRenewals } from '@/components/dashboard/upcoming-renewals';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { Appointment, Client, Service } from '@/lib/types';
+import { useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import type { Appointment, Client, Service, Summary } from '@/lib/types';
+import { Loader } from '@/components/ui/loader';
 
 
 export default function DashboardPage() {
@@ -35,9 +36,19 @@ export default function DashboardPage() {
     return collection(firestore, 'professionals', user.uid, 'services');
   }, [firestore, user]);
 
+  const summaryDoc = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'professionals', user.uid, 'summary', 'main');
+  },[firestore, user]);
+
   const { data: appointments } = useCollection<Appointment>(appointmentsCollection);
   const { data: clients } = useCollection<Client>(clientsCollection);
   const { data: services } = useCollection<Service>(servicesCollection);
+  const { data: summary, isLoading: isLoadingSummary } = useDoc<Summary>(summaryDoc);
+
+  if (isLoadingSummary) {
+    return <div className="flex h-[80vh] w-full items-center justify-center"><Loader /></div>;
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
@@ -54,17 +65,17 @@ export default function DashboardPage() {
       </div>
       
       <div className="space-y-4">
-        <StatsCards isRevenueVisible={isRevenueVisible} appointments={appointments || []} clients={clients || []} />
+        <StatsCards isRevenueVisible={isRevenueVisible} summary={summary} />
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
           <div className="col-span-1 lg:col-span-4">
-            <RevenueChart isRevenueVisible={isRevenueVisible} appointments={appointments || []} />
+            <RevenueChart isRevenueVisible={isRevenueVisible} summary={summary} />
           </div>
           <div className="col-span-1 lg:col-span-3">
-             <NewClientsChart clients={clients || []} />
+             <NewClientsChart summary={summary} />
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PopularServicesChart appointments={appointments || []} services={services || []} />
+            <PopularServicesChart summary={summary} services={services || []} />
             <UpcomingRenewals appointments={appointments || []} clients={clients || []} services={services || []} />
         </div>
       </div>

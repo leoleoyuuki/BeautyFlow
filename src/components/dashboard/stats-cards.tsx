@@ -1,39 +1,39 @@
+
 "use client";
 
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
-import { subMonths, isAfter, addMonths } from 'date-fns';
+import { subMonths, isAfter, addMonths, format } from 'date-fns';
 import { DollarSign, Users, BellRing, TrendingUp } from 'lucide-react';
-import type { Appointment, Client } from '@/lib/types';
+import type { Appointment, Client, Summary } from '@/lib/types';
 
 interface StatsCardsProps {
   isRevenueVisible: boolean;
-  appointments: Appointment[];
-  clients: Client[];
+  summary: Summary | null;
 }
 
-export function StatsCards({ isRevenueVisible, appointments, clients }: StatsCardsProps) {
+export function StatsCards({ isRevenueVisible, summary }: StatsCardsProps) {
   const stats = useMemo(() => {
-    const now = new Date();
-    const oneMonthAgo = subMonths(now, 1);
-    
-    const totalRevenue = appointments.reduce((sum, p) => sum + (p.price || 0), 0);
-    const revenueLastMonth = appointments
-        .filter(p => isAfter(new Date(p.appointmentDate), oneMonthAgo))
-        .reduce((sum, p) => sum + (p.price || 0), 0);
+    if (!summary) {
+        return {
+            totalRevenue: 0,
+            revenueLastMonth: 0,
+            totalClients: 0,
+            newClientsLastMonth: 0,
+            totalAppointments: 0,
+        }
+    }
+    const lastMonthKey = format(subMonths(new Date(), 1), 'yyyy-MM');
 
-    const totalClients = clients.length;
-    const newClientsLastMonth = clients.filter(c => c.createdAt && isAfter(new Date(c.createdAt), oneMonthAgo)).length;
-    
-    const upcomingRenewals = appointments.filter(p => {
-        const renewalDate = addMonths(new Date(p.appointmentDate), p.validityPeriodMonths);
-        const twoMonthsFromNow = addMonths(now, 2);
-        return isAfter(renewalDate, now) && isAfter(twoMonthsFromNow, renewalDate);
-    }).length;
-
-    return { totalRevenue, revenueLastMonth, totalClients, newClientsLastMonth, upcomingRenewals };
-  }, [appointments, clients]);
+    return { 
+        totalRevenue: summary.totalRevenue,
+        revenueLastMonth: summary.monthlyRevenue?.[lastMonthKey] || 0,
+        totalClients: summary.totalClients,
+        newClientsLastMonth: summary.newClientsPerMonth?.[lastMonthKey] || 0,
+        totalAppointments: summary.totalAppointments,
+     };
+  }, [summary]);
 
   const StatDisplay = ({ value, prefix = '', suffix = '' }: { value: number | string, prefix?: string, suffix?: string }) => 
     isRevenueVisible ? <span>{prefix}{value}{suffix}</span> : <span className="text-lg font-semibold">●●●●</span>;
@@ -73,28 +73,29 @@ export function StatsCards({ isRevenueVisible, appointments, clients }: StatsCar
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Renovações Próximas</CardTitle>
-          <BellRing className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            <StatDisplay value={stats.upcomingRenewals} prefix="+" />
-          </div>
-          <p className="text-xs text-muted-foreground">Nos próximos 2 meses</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Procedimentos Realizados</CardTitle>
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            <StatDisplay value={appointments.length} />
+            <StatDisplay value={stats.totalAppointments} />
           </div>
-          <p className="text-xs text-muted-foreground">Total de atendimentos</p>
+           <p className="text-xs text-muted-foreground">Total de atendimentos</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Renovações Próximas</CardTitle>
+          <BellRing className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            ...
+          </div>
+          <p className="text-xs text-muted-foreground">Em breve</p>
         </CardContent>
       </Card>
     </div>
   );
 }
+

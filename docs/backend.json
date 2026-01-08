@@ -234,7 +234,34 @@
         "purchaseDate": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "professionalId", "materialId", "quantity", "totalPrice", "purchaseDate"]
-    }
+    },
+    "Summary": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Summary",
+        "type": "object",
+        "description": "A single document containing aggregated data for a professional's dashboard.",
+        "properties": {
+          "totalRevenue": { "type": "number", "description": "The lifetime total revenue for the professional." },
+          "totalClients": { "type": "number", "description": "The total number of clients for the professional." },
+          "totalAppointments": { "type": "number", "description": "The lifetime total number of appointments." },
+          "monthlyRevenue": {
+            "type": "object",
+            "description": "A map of monthly revenue, e.g., {'2024-07': 1500.50}",
+            "additionalProperties": { "type": "number" }
+          },
+          "newClientsPerMonth": {
+            "type": "object",
+            "description": "A map of new clients per month, e.g., {'2024-07': 10}",
+            "additionalProperties": { "type": "number" }
+          },
+          "serviceCounts": {
+            "type": "object",
+            "description": "A map of service IDs to their counts, e.g., {'serviceId1': 25}",
+            "additionalProperties": { "type": "number" }
+          }
+        },
+        "required": ["totalRevenue", "totalClients", "totalAppointments", "monthlyRevenue", "newClientsPerMonth", "serviceCounts"]
+      }
   },
   "auth": {
     "providers": [
@@ -341,6 +368,14 @@
           "entityName": "MaterialPurchase",
           "schema": { "$ref": "#/backend/entities/MaterialPurchase" },
           "description": "Stores material purchase records for each professional."
+        }
+      },
+      {
+        "path": "/professionals/{professionalId}/summary/{summaryId}",
+        "definition": {
+            "entityName": "Summary",
+            "schema": { "$ref": "#/backend/entities/Summary" },
+            "description": "Stores aggregated dashboard data for a professional. Contains a single document with the ID 'main'."
         }
       },
       {
