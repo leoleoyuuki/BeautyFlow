@@ -175,27 +175,48 @@ export default function ExpensesPage() {
   
   const isLoading = isLoadingPurchases || isLoadingMaterials || isLoadingCategories;
 
+  const { materialPurchases, accountExpenses } = useMemo(() => {
+    const contasCategoryId = categories?.find(c => c.name.toLowerCase() === 'contas')?.id;
+    if (!purchases || !materials || !contasCategoryId) {
+      return { materialPurchases: [], accountExpenses: [] };
+    }
+
+    const materialPurchasesList: MaterialPurchase[] = [];
+    const accountExpensesList: MaterialPurchase[] = [];
+
+    purchases.forEach(p => {
+      const material = materials.find(m => m.id === p.materialId);
+      if (material?.categoryId === contasCategoryId) {
+        accountExpensesList.push(p);
+      } else {
+        materialPurchasesList.push(p);
+      }
+    });
+
+    return { materialPurchases: materialPurchasesList, accountExpenses: accountExpensesList };
+  }, [purchases, materials, categories]);
+
 
   return (
     <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
       <div className="flex items-center justify-between px-2">
          <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Controle de Gastos</h1>
-            <p className="text-muted-foreground">Registre suas compras de materiais para manter o controle do estoque e dos custos.</p>
+            <p className="text-muted-foreground">Registre suas compras e despesas para manter o controle dos custos.</p>
         </div>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Nova Compra</span>
+              <span className="hidden md:inline">Nova Despesa</span>
               <span className="inline md:hidden">Nova</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Registrar Compra de Material</DialogTitle>
+              <DialogTitle>Registrar Nova Despesa</DialogTitle>
               <DialogDescription>
-                Preencha os detalhes da sua nova compra. O estoque será atualizado automaticamente, exceto para a categoria "Contas".
+                Preencha os detalhes da sua nova compra ou conta. O estoque será atualizado automaticamente, exceto para a categoria "Contas".
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -218,7 +239,7 @@ export default function ExpensesPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="material" className="text-right">
-                  Material
+                  Item
                 </Label>
                 <Combobox
                     options={materialOptions.filter(m => {
@@ -230,9 +251,9 @@ export default function ExpensesPage() {
                     onSelect={(value, label) => setNewPurchase({...newPurchase, materialId: value, materialName: label})}
                     onCreate={(inputValue) => setNewPurchase({...newPurchase, materialId: '', materialName: inputValue})}
                     placeholder="Selecione ou crie"
-                    createText="Criar novo material"
-                    searchPlaceholder="Buscar material..."
-                    notFoundText="Nenhum material encontrado."
+                    createText="Criar novo item"
+                    searchPlaceholder="Buscar item..."
+                    notFoundText="Nenhum item encontrado."
                     className="col-span-3"
                     disabled={!newPurchase.categoryId && !newPurchase.categoryName}
                 />
@@ -290,7 +311,7 @@ export default function ExpensesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleAddPurchase}>Salvar Compra</Button>
+              <Button onClick={handleAddPurchase}>Salvar Despesa</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -300,25 +321,75 @@ export default function ExpensesPage() {
           <ExpensesChart purchases={purchases} />
       </div>
 
-       <div className="hidden md:block">
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Card de Despesas (Contas) */}
         <Card>
             <CardHeader>
-                <CardTitle>Histórico de Compras</CardTitle>
+                <CardTitle>Despesas (Contas)</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Data da Compra</TableHead>
-                                <TableHead>Material</TableHead>
-                                <TableHead>Quantidade</TableHead>
-                                <TableHead>Preço Total</TableHead>
+                                <TableHead>Data</TableHead>
+                                <TableHead>Descrição</TableHead>
+                                <TableHead>Valor</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {isLoading && !purchases && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
-                            {purchases?.map(p => (
+                            {isLoading && accountExpenses.length === 0 && <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                            {accountExpenses.map(p => (
+                                <TableRow key={p.id}>
+                                    <TableCell>{formatDate(p.purchaseDate)}</TableCell>
+                                    <TableCell>{getMaterialName(p.materialId)}</TableCell>
+                                    <TableCell>{formatCurrency(p.totalPrice)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+                 <div className="grid gap-4 md:hidden">
+                    {isLoading && accountExpenses.length === 0 && <Loader />}
+                    {accountExpenses.map((purchase) => (
+                        <Card key={purchase.id} className="border-l-4 border-destructive">
+                            <CardHeader className="p-4">
+                                <CardTitle className="text-base flex justify-between items-center">
+                                    <span>{getMaterialName(purchase.materialId)}</span>
+                                    <span className="font-medium">{formatCurrency(purchase.totalPrice)}</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0 text-sm">
+                                <div className="flex justify-between text-muted-foreground">
+                                    <span>Data:</span>
+                                    <span>{formatDate(purchase.purchaseDate)}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+        
+        {/* Card de Compras de Materiais */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Histórico de Compras de Materiais</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Data</TableHead>
+                                <TableHead>Material</TableHead>
+                                <TableHead>Qnt.</TableHead>
+                                <TableHead>Valor</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading && materialPurchases.length === 0 && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                            {materialPurchases.map(p => (
                                 <TableRow key={p.id}>
                                     <TableCell>{formatDate(p.purchaseDate)}</TableCell>
                                     <TableCell>{getMaterialName(p.materialId)}</TableCell>
@@ -329,47 +400,40 @@ export default function ExpensesPage() {
                         </TableBody>
                     </Table>
                 </div>
-                 {hasMore && (
-                    <div className="mt-4 flex justify-center">
-                        <Button onClick={loadMore} disabled={isLoadingPurchases}>
-                            {isLoadingPurchases ? 'Carregando...' : 'Carregar Mais'}
-                        </Button>
-                    </div>
-                )}
+                <div className="grid gap-4 md:hidden">
+                    {isLoading && materialPurchases.length === 0 && <Loader />}
+                    {materialPurchases.map((purchase) => (
+                        <Card key={purchase.id}>
+                            <CardHeader className="p-4">
+                                <CardTitle className="text-base flex justify-between items-center">
+                                    <span>{getMaterialName(purchase.materialId)}</span>
+                                    <span className="font-medium">{formatCurrency(purchase.totalPrice)}</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0 text-sm">
+                                <div className="flex justify-between text-muted-foreground">
+                                    <span>Quantidade:</span>
+                                    <span>{purchase.quantity}</span>
+                                </div>
+                                <div className="flex justify-between text-muted-foreground">
+                                    <span>Data:</span>
+                                    <span>{formatDate(purchase.purchaseDate)}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             </CardContent>
         </Card>
       </div>
-      
-       <div className="grid gap-4 md:hidden">
-        {isLoading && !purchases && <Loader />}
-        {purchases?.map((purchase) => (
-            <Card key={purchase.id}>
-                <CardHeader>
-                    <CardTitle className="text-lg flex justify-between items-center">
-                        <span>{getMaterialName(purchase.materialId)}</span>
-                        <span className="text-base font-medium">{formatCurrency(purchase.totalPrice)}</span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-2">
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Quantidade:</span>
-                        <span>{purchase.quantity}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Data:</span>
-                        <span>{formatDate(purchase.purchaseDate)}</span>
-                    </div>
-                </CardContent>
-            </Card>
-        ))}
-        {hasMore && (
-            <div className="mt-4 flex justify-center">
-                <Button onClick={loadMore} disabled={isLoadingPurchases}>
-                    {isLoadingPurchases ? 'Carregando...' : 'Carregar Mais'}
-                </Button>
-            </div>
-        )}
-       </div>
+
+       {hasMore && (
+        <div className="mt-4 flex justify-center">
+            <Button onClick={loadMore} disabled={isLoadingPurchases}>
+                {isLoadingPurchases ? 'Carregando...' : 'Carregar Mais'}
+            </Button>
+        </div>
+      )}
     </div>
   );
 }
