@@ -1,3 +1,4 @@
+
 import { Timestamp } from "firebase/firestore";
 
 export type Professional = {
@@ -21,6 +22,7 @@ export type Service = {
     name: string;
     description: string;
     price: number;
+    createdAt: string;
 };
 
 export type Appointment = {
@@ -68,3 +70,6 @@ export type MaterialPurchase = {
 };
 
 
+
+
+    

@@ -208,7 +208,7 @@ export default function ClientsPage() {
                     </TableHeader>
                     <TableBody>
                     {isLoading && !clients && <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader /></TableCell></TableRow>}
-                    {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
+                    {clients?.map((client) => (
                         <TableRow key={client.id}>
                         <TableCell className="font-medium whitespace-nowrap">{client.name}</TableCell>
                         <TableCell>{client.phoneNumber}</TableCell>
@@ -257,7 +257,7 @@ export default function ClientsPage() {
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
         {isLoading && !clients && <Loader />}
-        {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
+        {clients?.map((client) => (
             <Card key={client.id}>
                 <CardHeader>
                     <CardTitle className="flex justify-between items-center text-lg">
@@ -309,3 +309,5 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+    

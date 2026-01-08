@@ -57,7 +57,7 @@ export default function ServicesPage() {
   const servicesQuery = useMemoFirebase(() => {
     if (!user) return null;
     const servicesCollection = collection(firestore, 'professionals', user.uid, 'services');
-    return query(servicesCollection, orderBy('name'));
+    return query(servicesCollection, orderBy('createdAt', 'desc'));
   }, [firestore, user]);
 
   const { data: services, isLoading, loadMore, hasMore } = useCollection<Service>(servicesQuery, PAGE_SIZE);
@@ -69,6 +69,7 @@ export default function ServicesPage() {
       ...newService,
       price: newService.price || 0,
       professionalId: user!.uid,
+      createdAt: new Date().toISOString(),
     };
     addDocumentNonBlocking(servicesCollection, serviceToAdd);
     setNewService({ name: '', description: '', price: 0 });
@@ -338,3 +339,5 @@ export default function ServicesPage() {
     </div>
   );
 }
+
+    
