@@ -71,7 +71,7 @@ export default function ExpensesPage() {
   }, [firestore, user]);
 
 
-  const { data: purchases, isLoading: isLoadingPurchases, loadMore, hasMore } = useCollection<MaterialPurchase>(purchasesQuery);
+  const { data: purchases, isLoading: isLoadingPurchases, loadMore, hasMore } = useCollection<MaterialPurchase>(purchasesQuery, PAGE_SIZE);
   const { data: materials, isLoading: isLoadingMaterials } = useCollection<Material>(materialsCollection);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<MaterialCategory>(categoriesCollection);
 
