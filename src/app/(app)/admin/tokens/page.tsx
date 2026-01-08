@@ -29,7 +29,7 @@ export default function TokenGeneratorPage() {
   const tokensQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     const tokensCollection = collection(firestore, 'activationTokens');
-    return query(tokensCollection, orderBy('createdAt', 'desc'), limit(25));
+    return query(tokensCollection, orderBy('createdAt', 'desc'), limit(15));
   }, [firestore]);
 
   const { data: tokens, isLoading: isLoadingTokens } = useCollection<ActivationToken>(tokensQuery);
@@ -109,7 +109,7 @@ export default function TokenGeneratorPage() {
       <Card>
         <CardHeader>
             <CardTitle>Tokens Gerados</CardTitle>
-            <CardDescription>Lista dos últimos 25 tokens de ativação criados.</CardDescription>
+            <CardDescription>Lista dos últimos 15 tokens de ativação criados.</CardDescription>
         </CardHeader>
         <CardContent>
              <div className="hidden md:block">

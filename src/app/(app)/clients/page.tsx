@@ -53,7 +53,7 @@ export default function ClientsPage() {
   const clientsQuery = useMemoFirebase(() => {
     if (!user) return null;
     const clientsCollection = collection(firestore, 'professionals', user.uid, 'clients');
-    return query(clientsCollection, orderBy('createdAt', 'desc'), limit(25));
+    return query(clientsCollection, orderBy('createdAt', 'desc'), limit(15));
   }, [firestore, user]);
 
   const { data: clients, isLoading } = useCollection<Client>(clientsQuery);

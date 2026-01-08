@@ -55,7 +55,7 @@ export default function ExpensesPage() {
   const purchasesQuery = useMemoFirebase(() => {
     if (!user) return null;
     const purchasesCollection = collection(firestore, 'professionals', user.uid, 'materialPurchases');
-    return query(purchasesCollection, orderBy('purchaseDate', 'desc'), limit(25));
+    return query(purchasesCollection, orderBy('purchaseDate', 'desc'), limit(15));
   }, [firestore, user]);
 
   const materialsCollection = useMemoFirebase(() => {
@@ -75,7 +75,6 @@ export default function ExpensesPage() {
 
  const handleAddPurchase = async () => {
     if (!user || !materialsCollection || !categoriesCollection || !firestore) return;
-    const purchasesCollection = collection(firestore, 'professionals', user.uid, 'materialPurchases');
     let localPurchaseState = { ...newPurchase };
     
     try {

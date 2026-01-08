@@ -86,7 +86,7 @@ export default function AppointmentsPage() {
   const appointmentsQuery = useMemoFirebase(() => {
     if (!user) return null;
     const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
-    return query(appointmentsCollection, orderBy('appointmentDate', 'desc'), limit(25));
+    return query(appointmentsCollection, orderBy('appointmentDate', 'desc'), limit(15));
   }, [firestore, user]);
   
   const clientsCollection = useMemoFirebase(() => {

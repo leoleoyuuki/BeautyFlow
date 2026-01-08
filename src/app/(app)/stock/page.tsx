@@ -28,7 +28,7 @@ export default function StockPage() {
   const materialsQuery = useMemoFirebase(() => {
     if (!user) return null;
     const materialsCollection = collection(firestore, 'professionals', user.uid, 'materials');
-    return query(materialsCollection, orderBy('name'), limit(25));
+    return query(materialsCollection, orderBy('name'), limit(15));
   }, [firestore, user]);
 
   const categoriesCollection = useMemoFirebase(() => {

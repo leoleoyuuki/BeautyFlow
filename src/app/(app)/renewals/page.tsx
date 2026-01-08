@@ -104,7 +104,7 @@ export default function RenewalsPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading && <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader /></TableCell></TableRow>}
-                  {renewals.slice(0, 25).map((renewal) => {
+                  {renewals.slice(0, 15).map((renewal) => {
                     const client = allClients?.find(c => c.id === renewal.clientId);
                     const service = allServices?.find(s => s.id === renewal.serviceId);
                     if (!client || !service) return null;
@@ -139,7 +139,7 @@ export default function RenewalsPage() {
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
         {isLoading && <Loader />}
-        {renewals.slice(0, 25).map((renewal) => {
+        {renewals.slice(0, 15).map((renewal) => {
             const client = allClients?.find(c => c.id === renewal.clientId);
             const service = allServices?.find(s => s.id === renewal.serviceId);
             if (!client || !service) return null;
