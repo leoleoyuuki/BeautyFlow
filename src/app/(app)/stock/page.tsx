@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Minus, Plus, Pencil, Save, X } from 'lucide-react';
 import type { Material, MaterialCategory } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, limit } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
 
 export default function StockPage() {
@@ -25,9 +25,10 @@ export default function StockPage() {
   const [editingStock, setEditingStock] = useState<{ [key: string]: number | undefined }>({});
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
 
-  const materialsCollection = useMemoFirebase(() => {
+  const materialsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(firestore, 'professionals', user.uid, 'materials');
+    const materialsCollection = collection(firestore, 'professionals', user.uid, 'materials');
+    return query(materialsCollection, orderBy('name'), limit(25));
   }, [firestore, user]);
 
   const categoriesCollection = useMemoFirebase(() => {
@@ -35,7 +36,7 @@ export default function StockPage() {
     return collection(firestore, 'professionals', user.uid, 'materialCategories');
   }, [firestore, user]);
 
-  const { data: materials, isLoading: isLoadingMaterials } = useCollection<Material>(materialsCollection);
+  const { data: materials, isLoading: isLoadingMaterials } = useCollection<Material>(materialsQuery);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<MaterialCategory>(categoriesCollection);
   
   const getCategoryName = (id: string) => categories?.find(c => c.id === id)?.name || '...';
@@ -79,7 +80,7 @@ export default function StockPage() {
 
   const sortedMaterials = useMemo(() => {
     const nonContasCategories = categories?.filter(c => c.name.toLowerCase() !== 'contas').map(c => c.id) || [];
-    return materials?.filter(m => nonContasCategories.includes(m.categoryId)).sort((a,b) => a.name.localeCompare(b.name)) || [];
+    return materials?.filter(m => nonContasCategories.includes(m.categoryId)) || [];
   }, [materials, categories]);
 
   const getStockBadgeVariant = (stock: number) => {
@@ -209,5 +210,3 @@ export default function StockPage() {
     </div>
   );
 }
-
-    

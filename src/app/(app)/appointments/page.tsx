@@ -41,7 +41,7 @@ import { CalendarIcon, PlusCircle, Pencil, Trash } from 'lucide-react';
 import { formatDate, cn, formatCurrency } from '@/lib/utils';
 import type { Client, Service, Appointment } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -83,9 +83,10 @@ export default function AppointmentsPage() {
   const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null);
 
 
-  const appointmentsCollection = useMemoFirebase(() => {
+  const appointmentsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(firestore, 'professionals', user.uid, 'appointments');
+    const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
+    return query(appointmentsCollection, orderBy('appointmentDate', 'desc'), limit(25));
   }, [firestore, user]);
   
   const clientsCollection = useMemoFirebase(() => {
@@ -98,13 +99,13 @@ export default function AppointmentsPage() {
     return collection(firestore, 'professionals', user.uid, 'services');
   }, [firestore, user]);
 
-  const { data: appointments, isLoading: isLoadingAppointments } = useCollection<Appointment>(appointmentsCollection);
+  const { data: appointments, isLoading: isLoadingAppointments } = useCollection<Appointment>(appointmentsQuery);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
   const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesCollection);
 
   const handleAddAppointment = () => {
-    if (!appointmentsCollection || !newAppointment.clientId || !newAppointment.serviceId || !newAppointment.appointmentDate) return;
-
+    if (!firestore || !user || !newAppointment.clientId || !newAppointment.serviceId || !newAppointment.appointmentDate) return;
+    const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
     const selectedService = services?.find(s => s.id === newAppointment.serviceId);
 
     const appointmentToAdd = {
@@ -156,8 +157,8 @@ export default function AppointmentsPage() {
   };
 
   const handleUpdateAppointment = () => {
-    if (!appointmentsCollection || !editingAppointment) return;
-
+    if (!firestore || !user || !editingAppointment) return;
+    const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
     const appointmentDocRef = doc(appointmentsCollection, editingAppointment.id);
 
     const selectedService = services?.find(s => s.id === editingAppointment.serviceId);
@@ -181,7 +182,8 @@ export default function AppointmentsPage() {
 };
 
  const handleDeleteAppointment = () => {
-    if (!appointmentsCollection || !deletingAppointment) return;
+    if (!firestore || !user || !deletingAppointment) return;
+    const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
     const appointmentDocRef = doc(appointmentsCollection, deletingAppointment.id);
     deleteDocumentNonBlocking(appointmentDocRef);
     setDeletingAppointment(null);
@@ -196,10 +198,6 @@ export default function AppointmentsPage() {
     setEditDialogOpen(true);
   }
   
-  const sortedAppointments = useMemo(() => {
-    return appointments?.sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()) || [];
-  }, [appointments]);
-
   const DatePicker = ({ date, onSelect, open, onOpenChange }: { date: Date | undefined, onSelect: (date?: Date) => void, open: boolean, onOpenChange: (open: boolean) => void }) => {
     const handleSelect = (selectedDate?: Date) => {
       onSelect(selectedDate);
@@ -593,7 +591,7 @@ export default function AppointmentsPage() {
                 </TableHeader>
                 <TableBody>
                   {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader /></TableCell></TableRow>}
-                  {sortedAppointments.map((appointment) => {
+                  {appointments?.map((appointment) => {
                     const client = clients?.find(c => c.id === appointment.clientId);
                     const service = services?.find(s => s.id === appointment.serviceId);
                     return (
@@ -641,7 +639,7 @@ export default function AppointmentsPage() {
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
         {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <Loader />}
-        {sortedAppointments.map((appointment) => {
+        {appointments?.map((appointment) => {
             const client = clients?.find(c => c.id === appointment.clientId);
             const service = services?.find(s => s.id === appointment.serviceId);
             return (
@@ -698,5 +696,3 @@ export default function AppointmentsPage() {
     </div>
   );
 }
-
-    

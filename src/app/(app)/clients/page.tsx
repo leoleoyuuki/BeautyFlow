@@ -37,7 +37,7 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle, Pencil, Phone, Trash } from 'lucide-react';
 import type { Client } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Loader } from '@/components/ui/loader';
 
@@ -50,15 +50,17 @@ export default function ClientsPage() {
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
 
 
-  const clientsCollection = useMemoFirebase(() => {
+  const clientsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(firestore, 'professionals', user.uid, 'clients');
+    const clientsCollection = collection(firestore, 'professionals', user.uid, 'clients');
+    return query(clientsCollection, orderBy('createdAt', 'desc'), limit(25));
   }, [firestore, user]);
 
-  const { data: clients, isLoading } = useCollection<Client>(clientsCollection);
+  const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
 
   const handleAddClient = () => {
-    if (!clientsCollection) return;
+    if (!firestore || !user) return;
+    const clientsCollection = collection(firestore, 'professionals', user.uid, 'clients');
     const clientToAdd = {
       name: newClient.name,
       phoneNumber: newClient.phoneNumber,
@@ -71,7 +73,8 @@ export default function ClientsPage() {
   };
   
   const handleUpdateClient = () => {
-    if (!clientsCollection || !editingClient) return;
+    if (!firestore || !user || !editingClient) return;
+    const clientsCollection = collection(firestore, 'professionals', user.uid, 'clients');
     const clientDocRef = doc(clientsCollection, editingClient.id);
     const { id, ...clientData } = editingClient;
     updateDocumentNonBlocking(clientDocRef, clientData);
@@ -80,7 +83,8 @@ export default function ClientsPage() {
   }
 
   const handleDeleteClient = () => {
-    if (!clientsCollection || !deletingClient) return;
+    if (!firestore || !user || !deletingClient) return;
+    const clientsCollection = collection(firestore, 'professionals', user.uid, 'clients');
     const clientDocRef = doc(clientsCollection, deletingClient.id);
     deleteDocumentNonBlocking(clientDocRef);
     setDeletingClient(null);
@@ -289,5 +293,3 @@ export default function ClientsPage() {
     </div>
   );
 }
-
-    

@@ -18,12 +18,14 @@ import { addMonths, isAfter, differenceInDays } from 'date-fns';
 import { MessageSquare } from 'lucide-react';
 import type { Client, Service, Appointment } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where, limit } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
 
 export default function RenewalsPage() {
   const { firestore, user } = useFirebase();
 
+  // We fetch all appointments for renewals calculation for now.
+  // A more scalable solution might involve a scheduled function to update renewal status.
   const appointmentsCollection = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'professionals', user.uid, 'appointments');
@@ -102,7 +104,7 @@ export default function RenewalsPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading && <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader /></TableCell></TableRow>}
-                  {renewals.map((renewal) => {
+                  {renewals.slice(0, 25).map((renewal) => {
                     const client = allClients?.find(c => c.id === renewal.clientId);
                     const service = allServices?.find(s => s.id === renewal.serviceId);
                     if (!client || !service) return null;
@@ -137,7 +139,7 @@ export default function RenewalsPage() {
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
         {isLoading && <Loader />}
-        {renewals.map((renewal) => {
+        {renewals.slice(0, 25).map((renewal) => {
             const client = allClients?.find(c => c.id === renewal.clientId);
             const service = allServices?.find(s => s.id === renewal.serviceId);
             if (!client || !service) return null;

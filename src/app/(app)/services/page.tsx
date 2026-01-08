@@ -37,7 +37,7 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle, Pencil, Trash } from 'lucide-react';
 import type { Service } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -53,15 +53,17 @@ export default function ServicesPage() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
 
-  const servicesCollection = useMemoFirebase(() => {
+  const servicesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(firestore, 'professionals', user.uid, 'services');
+    const servicesCollection = collection(firestore, 'professionals', user.uid, 'services');
+    return query(servicesCollection, orderBy('name'), limit(25));
   }, [firestore, user]);
 
-  const { data: services, isLoading } = useCollection<Service>(servicesCollection);
+  const { data: services, isLoading } = useCollection<Service>(servicesQuery);
 
   const handleAddService = () => {
-    if (!servicesCollection || !newService.name) return;
+    if (!firestore || !user || !newService.name) return;
+    const servicesCollection = collection(firestore, 'professionals', user.uid, 'services');
     const serviceToAdd = {
       ...newService,
       price: newService.price || 0,
@@ -73,7 +75,8 @@ export default function ServicesPage() {
   };
   
   const handleUpdateService = () => {
-    if (!servicesCollection || !editingService) return;
+    if (!firestore || !user || !editingService) return;
+    const servicesCollection = collection(firestore, 'professionals', user.uid, 'services');
     const serviceDocRef = doc(servicesCollection, editingService.id);
     const { id, ...serviceData } = editingService;
     const updatedData = {
@@ -86,7 +89,8 @@ export default function ServicesPage() {
   };
 
   const handleDeleteService = () => {
-    if (!servicesCollection || !deletingService) return;
+    if (!firestore || !user || !deletingService) return;
+    const servicesCollection = collection(firestore, 'professionals', user.uid, 'services');
     const serviceDocRef = doc(servicesCollection, deletingService.id);
     deleteDocumentNonBlocking(serviceDocRef);
     setDeletingService(null);
@@ -231,7 +235,7 @@ export default function ServicesPage() {
                 </TableHeader>
                 <TableBody>
                     {isLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
-                    {services?.sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
+                    {services?.map((service) => (
                     <TableRow key={service.id}>
                         <TableCell className="font-medium whitespace-nowrap">{service.name}</TableCell>
                         <TableCell className="whitespace-nowrap">{service.description}</TableCell>
@@ -274,7 +278,7 @@ export default function ServicesPage() {
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
         {isLoading && <Loader />}
-        {services?.sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
+        {services?.map((service) => (
           <Card key={service.id}>
             <CardHeader>
                 <CardTitle className="flex justify-between items-center text-lg">
@@ -319,5 +323,3 @@ export default function ServicesPage() {
     </div>
   );
 }
-
-    

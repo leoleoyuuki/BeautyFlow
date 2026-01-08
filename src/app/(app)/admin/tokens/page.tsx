@@ -2,8 +2,8 @@
 "use client";
 
 import { useState } from 'react';
-import { useFirebase, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { Copy, Check } from 'lucide-react';
 import type { ActivationToken } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { FullscreenLoader, Loader } from '@/components/ui/loader';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const ADMIN_UID = 'fE4wQQun2zgDr39cwH0AKoOADkT2';
 
@@ -25,16 +26,17 @@ export default function TokenGeneratorPage() {
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const tokensCollection = useMemoFirebase(() => {
+  const tokensQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'activationTokens');
+    const tokensCollection = collection(firestore, 'activationTokens');
+    return query(tokensCollection, orderBy('createdAt', 'desc'), limit(25));
   }, [firestore]);
 
-  const { data: tokens, isLoading: isLoadingTokens } = useCollection<ActivationToken>(tokensCollection);
+  const { data: tokens, isLoading: isLoadingTokens } = useCollection<ActivationToken>(tokensQuery);
 
   const handleGenerateToken = async () => {
-    if (!tokensCollection) return;
-
+    if (!firestore) return;
+    const tokensCollection = collection(firestore, 'activationTokens');
     const tokenData = {
       createdAt: new Date().toISOString(),
       durationMonths: Number(durationMonths),
@@ -64,8 +66,6 @@ export default function TokenGeneratorPage() {
     // so we can just show a message or a loader here.
     return <div className="flex h-screen items-center justify-center">Acesso negado. Você será redirecionado.</div>;
   }
-
-  const sortedTokens = tokens?.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
@@ -109,7 +109,7 @@ export default function TokenGeneratorPage() {
       <Card>
         <CardHeader>
             <CardTitle>Tokens Gerados</CardTitle>
-            <CardDescription>Lista de todos os tokens de ativação já criados.</CardDescription>
+            <CardDescription>Lista dos últimos 25 tokens de ativação criados.</CardDescription>
         </CardHeader>
         <CardContent>
              <div className="hidden md:block">
@@ -125,7 +125,7 @@ export default function TokenGeneratorPage() {
                     </TableHeader>
                     <TableBody>
                         {isLoadingTokens && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader /></TableCell></TableRow>}
-                        {sortedTokens?.map(token => (
+                        {tokens?.map(token => (
                             <TableRow key={token.id}>
                                 <TableCell className="font-mono">{token.id}</TableCell>
                                 <TableCell>{formatDate(token.createdAt)}</TableCell>
@@ -143,7 +143,7 @@ export default function TokenGeneratorPage() {
              </div>
              <div className="grid gap-4 md:hidden">
                 {isLoadingTokens && <Loader />}
-                {sortedTokens?.map(token => (
+                {tokens?.map(token => (
                     <Card key={token.id}>
                          <CardHeader>
                             <CardTitle className="text-base font-mono flex items-center justify-between">

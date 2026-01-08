@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlusCircle } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, doc, runTransaction, DocumentReference } from 'firebase/firestore';
+import { collection, addDoc, doc, runTransaction, DocumentReference, query, orderBy, limit } from 'firebase/firestore';
 import type { MaterialPurchase, Material, MaterialCategory } from '@/lib/types';
 import {
   Table,
@@ -52,9 +52,10 @@ export default function ExpensesPage() {
   
   const [newPurchase, setNewPurchase] = useState(initialPurchaseState);
 
-  const purchasesCollection = useMemoFirebase(() => {
+  const purchasesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(firestore, 'professionals', user.uid, 'materialPurchases');
+    const purchasesCollection = collection(firestore, 'professionals', user.uid, 'materialPurchases');
+    return query(purchasesCollection, orderBy('purchaseDate', 'desc'), limit(25));
   }, [firestore, user]);
 
   const materialsCollection = useMemoFirebase(() => {
@@ -68,13 +69,13 @@ export default function ExpensesPage() {
   }, [firestore, user]);
 
 
-  const { data: purchases, isLoading: isLoadingPurchases } = useCollection<MaterialPurchase>(purchasesCollection);
+  const { data: purchases, isLoading: isLoadingPurchases } = useCollection<MaterialPurchase>(purchasesQuery);
   const { data: materials, isLoading: isLoadingMaterials } = useCollection<Material>(materialsCollection);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<MaterialCategory>(categoriesCollection);
 
  const handleAddPurchase = async () => {
-    if (!user || !materialsCollection || !categoriesCollection || !purchasesCollection || !firestore) return;
-
+    if (!user || !materialsCollection || !categoriesCollection || !firestore) return;
+    const purchasesCollection = collection(firestore, 'professionals', user.uid, 'materialPurchases');
     let localPurchaseState = { ...newPurchase };
     
     try {
@@ -168,10 +169,6 @@ export default function ExpensesPage() {
 
   const getMaterialName = (id: string) => materials?.find(m => m.id === id)?.name || '...';
   
-  const sortedPurchases = useMemo(() => {
-    return purchases?.sort((a,b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()) || [];
-  }, [purchases]);
-
   const isCreatingNewMaterial = !!(newPurchase.materialName && !newPurchase.materialId && !materials?.some(m => m.name.toLowerCase() === newPurchase.materialName.toLowerCase()));
   const showUnitOfMeasure = isCreatingNewMaterial && newPurchase.categoryName.toLowerCase() !== 'contas';
 
@@ -311,7 +308,7 @@ export default function ExpensesPage() {
                         </TableHeader>
                         <TableBody>
                             {isLoadingPurchases && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
-                            {sortedPurchases.map(p => (
+                            {purchases?.map(p => (
                                 <TableRow key={p.id}>
                                     <TableCell>{formatDate(p.purchaseDate)}</TableCell>
                                     <TableCell>{getMaterialName(p.materialId)}</TableCell>
@@ -328,7 +325,7 @@ export default function ExpensesPage() {
       
        <div className="grid gap-4 md:hidden">
         {(isLoadingPurchases || isLoadingMaterials) && <Loader />}
-        {sortedPurchases.map((purchase) => (
+        {purchases?.map((purchase) => (
             <Card key={purchase.id}>
                 <CardHeader>
                     <CardTitle className="text-lg flex justify-between items-center">
@@ -352,5 +349,3 @@ export default function ExpensesPage() {
     </div>
   );
 }
-
-    
