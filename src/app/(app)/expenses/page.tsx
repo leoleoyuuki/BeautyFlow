@@ -16,8 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlusCircle } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, doc, runTransaction, DocumentReference, query, orderBy, where, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, writeBatch, query, orderBy, getDoc } from 'firebase/firestore';
 import type { MaterialPurchase, Material, MaterialCategory } from '@/lib/types';
+import { handleAddPurchaseSummary } from '@/firebase/summary-updates';
 import {
   Table,
   TableBody,
@@ -83,8 +84,7 @@ export default function ExpensesPage() {
     if (!allPurchases) {
       return { materialPurchases: [], accountExpenses: [] };
     }
-    const materialIdToCategory = new Map(materials?.map(m => [m.id, m.categoryId]) || []);
-
+    
     const accountExpensesList: MaterialPurchase[] = [];
     const materialPurchasesList: MaterialPurchase[] = [];
 
@@ -103,14 +103,13 @@ export default function ExpensesPage() {
   
  const handleAddPurchase = async () => {
     if (!user || !materialsCollection || !categoriesCollection || !firestore) return;
-    let localPurchaseState = { ...newPurchase };
     
     try {
         const batch = writeBatch(firestore);
-        let newCategoryId = localPurchaseState.categoryId;
-        let newMaterialId = localPurchaseState.materialId;
+        let newCategoryId = newPurchase.categoryId;
+        let newMaterialId = newPurchase.materialId;
         
-        const trimmedCategoryName = localPurchaseState.categoryName.trim();
+        const trimmedCategoryName = newPurchase.categoryName.trim();
         if (!newCategoryId && trimmedCategoryName) {
             const existingCategory = categories?.find(c => c.name.toLowerCase() === trimmedCategoryName.toLowerCase());
             if (existingCategory) {
@@ -128,13 +127,13 @@ export default function ExpensesPage() {
             return;
         }
 
-        const trimmedMaterialName = localPurchaseState.materialName.trim();
+        const trimmedMaterialName = newPurchase.materialName.trim();
         if (!newMaterialId && trimmedMaterialName) {
             const existingMaterial = materials?.find(m => m.name.toLowerCase() === trimmedMaterialName.toLowerCase());
             if (existingMaterial) {
                 newMaterialId = existingMaterial.id;
             } else {
-                 if(!localPurchaseState.unitOfMeasure && trimmedCategoryName.toLowerCase() !== 'contas') {
+                 if(!newPurchase.unitOfMeasure && trimmedCategoryName.toLowerCase() !== 'contas') {
                     toast({ variant: "destructive", title: "Erro", description: "A unidade de medida é obrigatória para novos materiais." });
                     return;
                 }
@@ -144,8 +143,8 @@ export default function ExpensesPage() {
                     name: trimmedMaterialName, 
                     categoryId: newCategoryId, 
                     professionalId: user.uid, 
-                    stock: Number(localPurchaseState.quantity),
-                    unitOfMeasure: localPurchaseState.unitOfMeasure,
+                    stock: Number(newPurchase.quantity),
+                    unitOfMeasure: newPurchase.unitOfMeasure,
                 };
                 batch.set(materialRef, newMaterialData);
                 setMaterials(prev => [{id: newMaterialId, ...newMaterialData}, ...(prev || [])]);
@@ -165,18 +164,21 @@ export default function ExpensesPage() {
             return docSnap.data() as MaterialCategory;
         })();
 
-        if (newMaterialId && categoryData?.name.toLowerCase() !== 'contas' && !materials?.some(m => m.id === newMaterialId)) {
-            const materialRef = doc(materialsCollection, newMaterialId);
-            batch.update(materialRef, { stock: increment(Number(localPurchaseState.quantity)) });
+        if (newMaterialId && categoryData?.name.toLowerCase() !== 'contas') {
+            const materialDoc = materials?.find(m => m.id === newMaterialId);
+            if (materialDoc) {
+                 const materialRef = doc(materialsCollection, newMaterialId);
+                 batch.update(materialRef, { stock: materialDoc.stock + Number(newPurchase.quantity) });
+            }
         }
         
         const purchaseRef = doc(collection(firestore, 'professionals', user.uid, 'materialPurchases'));
-        const purchaseDate = new Date(localPurchaseState.purchaseDate + 'T00:00:00'); // Ensure it's treated as local date
-        const purchaseToAdd = {
+        const purchaseDate = new Date(newPurchase.purchaseDate + 'T00:00:00'); // Ensure it's treated as local date
+        const purchaseToAdd: Omit<MaterialPurchase, 'id'> = {
             professionalId: user.uid,
             materialId: newMaterialId,
-            quantity: Number(localPurchaseState.quantity),
-            totalPrice: localPurchaseState.totalPrice,
+            quantity: Number(newPurchase.quantity),
+            totalPrice: newPurchase.totalPrice,
             purchaseDate: purchaseDate.toISOString(),
         };
 
@@ -184,7 +186,12 @@ export default function ExpensesPage() {
 
         await batch.commit();
 
-        setAllPurchases(prev => [{id: purchaseRef.id, ...purchaseToAdd}, ...(prev || [])]);
+        const newPurchaseDoc = { ...purchaseToAdd, id: purchaseRef.id };
+        
+        // Non-blocking summary update
+        handleAddPurchaseSummary(firestore, user.uid, newPurchaseDoc);
+        
+        setAllPurchases(prev => [newPurchaseDoc, ...(prev || [])]);
 
         toast({ title: "Sucesso!", description: "Despesa registrada com sucesso." });
         setNewPurchase(initialPurchaseState);

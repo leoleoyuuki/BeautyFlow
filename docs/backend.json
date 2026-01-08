@@ -244,9 +244,15 @@
           "totalRevenue": { "type": "number", "description": "The lifetime total revenue for the professional." },
           "totalClients": { "type": "number", "description": "The total number of clients for the professional." },
           "totalAppointments": { "type": "number", "description": "The lifetime total number of appointments." },
+          "totalExpenses": { "type": "number", "description": "The lifetime total expenses for the professional." },
           "monthlyRevenue": {
             "type": "object",
             "description": "A map of monthly revenue, e.g., {'2024-07': 1500.50}",
+            "additionalProperties": { "type": "number" }
+          },
+          "monthlyExpenses": {
+            "type": "object",
+            "description": "A map of monthly expenses, e.g., {'2024-07': 500.25}",
             "additionalProperties": { "type": "number" }
           },
           "newClientsPerMonth": {

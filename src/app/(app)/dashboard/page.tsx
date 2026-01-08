@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, PlusCircle } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   RevenueChart,
@@ -16,11 +16,13 @@ import { collection, doc } from 'firebase/firestore';
 import type { Appointment, Client, Service, Summary } from '@/lib/types';
 import { Loader } from '@/components/ui/loader';
 import { backfillSummaryForUser } from '@/firebase/summary-backfill';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 export default function DashboardPage() {
   const [isRevenueVisible, setIsRevenueVisible] = useState(true);
   const { firestore, user } = useFirebase();
+  const [viewMode, setViewMode] = useState<'revenue' | 'profit'>('revenue');
 
   const appointmentsCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -75,20 +77,38 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      <div className="space-y-4">
-        <StatsCards isRevenueVisible={isRevenueVisible} summary={summary} />
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
-          <div className="col-span-1 lg:col-span-4">
-            <RevenueChart isRevenueVisible={isRevenueVisible} summary={summary} />
-          </div>
-          <div className="col-span-1 lg:col-span-3">
-             <NewClientsChart summary={summary} />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PopularServicesChart summary={summary} services={services || []} />
-            <UpcomingRenewals appointments={appointments || []} clients={clients || []} services={services || []} />
-        </div>
+      <Tabs defaultValue="revenue" className="space-y-4" onValueChange={(value) => setViewMode(value as 'revenue' | 'profit')}>
+        <TabsList>
+          <TabsTrigger value="revenue">Faturamento</TabsTrigger>
+          <TabsTrigger value="profit">Lucro Real</TabsTrigger>
+        </TabsList>
+        <TabsContent value="revenue" className="space-y-4">
+            <StatsCards isRevenueVisible={isRevenueVisible} summary={summary} viewMode="revenue" />
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+                <div className="col-span-1 lg:col-span-4">
+                    <RevenueChart isRevenueVisible={isRevenueVisible} summary={summary} viewMode="revenue"/>
+                </div>
+                <div className="col-span-1 lg:col-span-3">
+                    <NewClientsChart summary={summary} />
+                </div>
+            </div>
+        </TabsContent>
+         <TabsContent value="profit" className="space-y-4">
+            <StatsCards isRevenueVisible={isRevenueVisible} summary={summary} viewMode="profit" />
+             <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+                <div className="col-span-1 lg:col-span-4">
+                    <RevenueChart isRevenueVisible={isRevenueVisible} summary={summary} viewMode="profit" />
+                </div>
+                <div className="col-span-1 lg:col-span-3">
+                    <NewClientsChart summary={summary} />
+                </div>
+            </div>
+        </TabsContent>
+      </Tabs>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <PopularServicesChart summary={summary} services={services || []} />
+          <UpcomingRenewals appointments={appointments || []} clients={clients || []} services={services || []} />
       </div>
     </div>
   );

@@ -13,38 +13,65 @@ import type { Service, Summary, MaterialPurchase } from '@/lib/types';
 interface RevenueChartProps {
   isRevenueVisible: boolean;
   summary: Summary | null;
+  viewMode: 'revenue' | 'profit';
 }
 
-export function RevenueChart({ isRevenueVisible, summary }: RevenueChartProps) {
+export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueChartProps) {
   const chartData = useMemo(() => {
-    if (!summary?.monthlyRevenue) return [];
+    if (!summary) return [];
     const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
     return months.map(monthDate => {
       const monthKey = format(monthDate, 'yyyy-MM');
+      const revenue = summary.monthlyRevenue?.[monthKey] || 0;
+      const expenses = summary.monthlyExpenses?.[monthKey] || 0;
+      const profit = revenue - expenses;
       return {
         month: format(monthDate, 'MMM', { locale: ptBR }),
-        revenue: summary.monthlyRevenue[monthKey] || 0,
+        revenue,
+        expenses,
+        profit,
       };
     });
   }, [summary]);
 
+  const chartConfig = {
+      revenue: { label: 'Faturamento', color: 'hsl(var(--chart-1))' },
+      expenses: { label: 'Despesas', color: 'hsl(var(--chart-2))' },
+  }
+
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Faturamento Mensal</CardTitle>
+        <CardTitle>{viewMode === 'revenue' ? 'Faturamento Mensal' : 'Receitas vs. Despesas'}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={{}} className="h-[250px] w-full">
+        <ChartContainer config={chartConfig} className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: isRevenueVisible ? -10 : 20, bottom: 5 }}>
               <XAxis dataKey="month" />
               <YAxis tickFormatter={value => isRevenueVisible ? formatCurrency(value) : ''} />
               <Tooltip
                 content={<ChartTooltipContent 
-                    formatter={(value) => isRevenueVisible ? formatCurrency(Number(value)) : "Oculto"}
+                    formatter={(value, name) => {
+                        if (!isRevenueVisible) return "Oculto";
+                        
+                        if(name === 'profit') {
+                             const profitValue = chartData.find(d => d.profit === value)?.profit;
+                             return profitValue !== undefined ? formatCurrency(profitValue) : formatCurrency(Number(value));
+                        }
+                        
+                        return formatCurrency(Number(value))
+                    }}
                 />}
                 />
-              <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} />
+              <Legend />
+              <Line type="monotone" dataKey="revenue" name="Faturamento" stroke={chartConfig.revenue.color} strokeWidth={2} dot={viewMode === 'profit'}/>
+              {viewMode === 'profit' && (
+                <>
+                    <Line type="monotone" dataKey="expenses" name="Despesas" stroke={chartConfig.expenses.color} strokeWidth={2} />
+                    <Line type="monotone" dataKey="profit" name="Lucro" strokeWidth={0} dot={false} activeDot={false} legendType="none" />
+                </>
+              )}
             </LineChart>
           </ResponsiveContainer>
         </ChartContainer>

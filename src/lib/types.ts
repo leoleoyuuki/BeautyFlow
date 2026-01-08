@@ -74,7 +74,9 @@ export type Summary = {
     totalRevenue: number;
     totalClients: number;
     totalAppointments: number;
+    totalExpenses?: number;
     monthlyRevenue: { [key: string]: number }; // e.g., {'2024-07': 1500.50}
+    monthlyExpenses?: { [key: string]: number }; // e.g., {'2024-07': 500.25}
     newClientsPerMonth: { [key: string]: number }; // e.g., {'2024-07': 10}
     serviceCounts: { [key: string]: number }; // e.g., {'serviceId1': 25}
 };

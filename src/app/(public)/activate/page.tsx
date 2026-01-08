@@ -68,7 +68,9 @@ export default function ActivatePage() {
                 totalRevenue: 0,
                 totalClients: 0,
                 totalAppointments: 0,
+                totalExpenses: 0,
                 monthlyRevenue: {},
+                monthlyExpenses: {},
                 newClientsPerMonth: {},
                 serviceCounts: {},
             };

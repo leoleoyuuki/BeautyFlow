@@ -3,7 +3,7 @@
 
 import { doc, runTransaction, Firestore, increment } from 'firebase/firestore';
 import { format } from 'date-fns';
-import type { Appointment, Client } from './types';
+import type { Appointment, Client, MaterialPurchase } from './types';
 
 // Helper function to get the month key (e.g., '2024-07')
 const getMonthKey = (date: Date) => format(date, 'yyyy-MM');
@@ -99,4 +99,22 @@ export async function handleUpdateAppointmentSummary(db: Firestore, professional
     
     // Then, add the new appointment's contribution
     await handleAddAppointmentSummary(db, professionalId, newAppointment);
+}
+
+// --- Functions for Purchase Updates ---
+
+export async function handleAddPurchaseSummary(db: Firestore, professionalId: string, purchase: MaterialPurchase) {
+    const summaryRef = doc(db, 'professionals', professionalId, 'summary', 'main');
+    const monthKey = getMonthKey(new Date(purchase.purchaseDate));
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            transaction.update(summaryRef, {
+                totalExpenses: increment(purchase.totalPrice || 0),
+                [`monthlyExpenses.${monthKey}`]: increment(purchase.totalPrice || 0),
+            });
+        });
+    } catch (error) {
+        console.error("Error updating summary for new purchase:", error);
+    }
 }
