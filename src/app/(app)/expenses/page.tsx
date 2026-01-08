@@ -85,19 +85,19 @@ export default function ExpensesPage() {
     }
     const materialIdToCategory = new Map(materials.map(m => [m.id, m.categoryId]));
 
-    const accountExpenses: MaterialPurchase[] = [];
-    const materialPurchases: MaterialPurchase[] = [];
+    const accountExpensesList: MaterialPurchase[] = [];
+    const materialPurchasesList: MaterialPurchase[] = [];
 
     allPurchases.forEach(purchase => {
       const categoryId = materialIdToCategory.get(purchase.materialId);
       if (categoryId === contasCategoryId) {
-        accountExpenses.push(purchase);
+        accountExpensesList.push(purchase);
       } else {
-        materialPurchases.push(purchase);
+        materialPurchasesList.push(purchase);
       }
     });
 
-    return { materialPurchases, accountExpenses };
+    return { materialPurchases: materialPurchasesList, accountExpenses: accountExpensesList };
   }, [allPurchases, materials, contasCategoryId]);
 
   
