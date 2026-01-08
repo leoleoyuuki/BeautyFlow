@@ -25,6 +25,7 @@ export interface UseCollectionResult<T> {
   error: FirestoreError | Error | null;
   loadMore: () => void;
   hasMore: boolean;
+  setData: React.Dispatch<React.SetStateAction<WithId<T>[] | null>>;
 }
 
 export interface InternalQuery extends Query<DocumentData> {
@@ -103,7 +104,9 @@ export function useCollection<T = any>(
     setData(null);
     setLastDoc(null);
     setHasMore(true);
-    fetchData(false);
+    if(baseQuery) {
+        fetchData(false);
+    }
   }, [baseQuery]);
 
   const loadMore = useCallback(() => {
@@ -116,5 +119,5 @@ export function useCollection<T = any>(
     throw new Error('useCollection query was not properly memoized using useMemoFirebase');
   }
 
-  return { data, isLoading, error, loadMore, hasMore };
+  return { data, isLoading, error, loadMore, hasMore, setData };
 }

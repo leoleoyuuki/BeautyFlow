@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlusCircle } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, doc, runTransaction, DocumentReference, query, orderBy, where } from 'firebase/firestore';
+import { collection, addDoc, doc, runTransaction, DocumentReference, query, orderBy, where, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { MaterialPurchase, Material, MaterialCategory } from '@/lib/types';
 import {
   Table,
@@ -64,8 +64,8 @@ export default function ExpensesPage() {
     return collection(firestore, 'professionals', user.uid, 'materialCategories');
   }, [firestore, user]);
   
-  const { data: materials, isLoading: isLoadingMaterials } = useCollection<Material>(materialsCollection);
-  const { data: categories, isLoading: isLoadingCategories } = useCollection<MaterialCategory>(categoriesCollection);
+  const { data: materials, isLoading: isLoadingMaterials, setData: setMaterials } = useCollection<Material>(materialsCollection);
+  const { data: categories, isLoading: isLoadingCategories, setData: setCategories } = useCollection<MaterialCategory>(categoriesCollection);
 
   const allPurchasesQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -75,22 +75,22 @@ export default function ExpensesPage() {
     );
   }, [firestore, user]);
 
-  const { data: allPurchases, isLoading: isLoadingPurchases, loadMore, hasMore } = useCollection<MaterialPurchase>(allPurchasesQuery, PAGE_SIZE);
+  const { data: allPurchases, isLoading: isLoadingPurchases, loadMore, hasMore, setData: setAllPurchases } = useCollection<MaterialPurchase>(allPurchasesQuery, PAGE_SIZE);
 
   const contasCategoryId = useMemo(() => categories?.find(c => c.name.toLowerCase() === 'contas')?.id, [categories]);
 
   const { materialPurchases, accountExpenses } = useMemo(() => {
-    if (!allPurchases || !materials || contasCategoryId === undefined) {
+    if (!allPurchases) {
       return { materialPurchases: [], accountExpenses: [] };
     }
-    const materialIdToCategory = new Map(materials.map(m => [m.id, m.categoryId]));
+    const materialIdToCategory = new Map(materials?.map(m => [m.id, m.categoryId]) || []);
 
     const accountExpensesList: MaterialPurchase[] = [];
     const materialPurchasesList: MaterialPurchase[] = [];
 
     allPurchases.forEach(purchase => {
-      const categoryId = materialIdToCategory.get(purchase.materialId);
-      if (categoryId === contasCategoryId) {
+      const materialDoc = materials?.find(m => m.id === purchase.materialId);
+      if (materialDoc?.categoryId === contasCategoryId) {
         accountExpensesList.push(purchase);
       } else {
         materialPurchasesList.push(purchase);
@@ -106,82 +106,87 @@ export default function ExpensesPage() {
     let localPurchaseState = { ...newPurchase };
     
     try {
+        const batch = writeBatch(firestore);
+        let newCategoryId = localPurchaseState.categoryId;
+        let newMaterialId = localPurchaseState.materialId;
+        
         const trimmedCategoryName = localPurchaseState.categoryName.trim();
-        if (!localPurchaseState.categoryId && trimmedCategoryName) {
+        if (!newCategoryId && trimmedCategoryName) {
             const existingCategory = categories?.find(c => c.name.toLowerCase() === trimmedCategoryName.toLowerCase());
             if (existingCategory) {
-                localPurchaseState.categoryId = existingCategory.id;
+                newCategoryId = existingCategory.id;
             } else {
-                const categoryDoc = await addDoc(categoriesCollection, { name: trimmedCategoryName, professionalId: user.uid });
-                localPurchaseState.categoryId = categoryDoc.id;
+                const categoryRef = doc(categoriesCollection);
+                newCategoryId = categoryRef.id;
+                batch.set(categoryRef, { name: trimmedCategoryName, professionalId: user.uid });
+                setCategories(prev => [{id: newCategoryId, name: trimmedCategoryName, professionalId: user.uid }, ...(prev || [])]);
             }
-            setNewPurchase(prev => ({...prev, categoryId: localPurchaseState.categoryId, categoryName: trimmedCategoryName}));
         }
         
-        if (!localPurchaseState.categoryId) {
+        if (!newCategoryId) {
             toast({ variant: "destructive", title: "Erro", description: "A categoria é obrigatória." });
             return;
         }
 
         const trimmedMaterialName = localPurchaseState.materialName.trim();
-        if (!localPurchaseState.materialId && trimmedMaterialName) {
+        if (!newMaterialId && trimmedMaterialName) {
             const existingMaterial = materials?.find(m => m.name.toLowerCase() === trimmedMaterialName.toLowerCase());
-            
             if (existingMaterial) {
-                localPurchaseState.materialId = existingMaterial.id;
+                newMaterialId = existingMaterial.id;
             } else {
-                if(!localPurchaseState.unitOfMeasure && trimmedCategoryName.toLowerCase() !== 'contas') {
+                 if(!localPurchaseState.unitOfMeasure && trimmedCategoryName.toLowerCase() !== 'contas') {
                     toast({ variant: "destructive", title: "Erro", description: "A unidade de medida é obrigatória para novos materiais." });
                     return;
                 }
-                const materialData = { 
+                const materialRef = doc(materialsCollection);
+                newMaterialId = materialRef.id;
+                const newMaterialData = { 
                     name: trimmedMaterialName, 
-                    categoryId: localPurchaseState.categoryId, 
+                    categoryId: newCategoryId, 
                     professionalId: user.uid, 
-                    stock: 0,
+                    stock: Number(localPurchaseState.quantity),
                     unitOfMeasure: localPurchaseState.unitOfMeasure,
                 };
-                const materialDoc = await addDoc(materialsCollection, materialData);
-                localPurchaseState.materialId = materialDoc.id;
+                batch.set(materialRef, newMaterialData);
+                setMaterials(prev => [{id: newMaterialId, ...newMaterialData}, ...(prev || [])]);
             }
-            setNewPurchase(prev => ({...prev, materialId: localPurchaseState.materialId, materialName: trimmedMaterialName}));
         }
         
-        if (!localPurchaseState.materialId) {
+        if (!newMaterialId) {
             toast({ variant: "destructive", title: "Erro", description: "O item é obrigatório." });
             return;
         }
+
+        // Only update stock if it's an existing material and category is not "Contas"
+        const categoryData = await (async () => {
+            const found = categories?.find(c => c.id === newCategoryId);
+            if(found) return found;
+            const docSnap = await getDoc(doc(categoriesCollection, newCategoryId));
+            return docSnap.data() as MaterialCategory;
+        })();
+
+        if (newMaterialId && categoryData?.name.toLowerCase() !== 'contas' && !materials?.some(m => m.id === newMaterialId)) {
+            const materialRef = doc(materialsCollection, newMaterialId);
+            batch.update(materialRef, { stock: increment(Number(localPurchaseState.quantity)) });
+        }
         
+        const purchaseRef = doc(collection(firestore, 'professionals', user.uid, 'materialPurchases'));
+        const purchaseDate = new Date(localPurchaseState.purchaseDate + 'T00:00:00'); // Ensure it's treated as local date
         const purchaseToAdd = {
-            materialId: localPurchaseState.materialId,
+            professionalId: user.uid,
+            materialId: newMaterialId,
             quantity: Number(localPurchaseState.quantity),
             totalPrice: localPurchaseState.totalPrice,
-            purchaseDate: new Date(localPurchaseState.purchaseDate).toISOString(),
-            professionalId: user.uid,
+            purchaseDate: purchaseDate.toISOString(),
         };
 
-        // Only update stock if the category is not "Contas"
-        if (trimmedCategoryName.toLowerCase() !== 'contas') {
-            const materialRef = doc(materialsCollection, localPurchaseState.materialId) as DocumentReference<Material>;
-            await runTransaction(firestore, async (transaction) => {
-                const materialSnap = await transaction.get(materialRef);
-                if (!materialSnap.exists()) {
-                    throw new Error("Material não encontrado!");
-                }
+        batch.set(purchaseRef, purchaseToAdd);
 
-                const newStock = (materialSnap.data()?.stock || 0) + Number(localPurchaseState.quantity);
-                transaction.update(materialRef, { stock: newStock });
-                
-                const purchaseRef = doc(collection(firestore, 'professionals', user.uid, 'materialPurchases'));
-                transaction.set(purchaseRef, purchaseToAdd);
-            });
-            toast({ title: "Sucesso!", description: "Compra registrada e estoque atualizado." });
-        } else {
-            // For "Contas", just add the purchase record without a transaction
-            await addDoc(collection(firestore, 'professionals', user.uid, 'materialPurchases'), purchaseToAdd);
-            toast({ title: "Sucesso!", description: "Despesa registrada." });
-        }
+        await batch.commit();
 
+        setAllPurchases(prev => [{id: purchaseRef.id, ...purchaseToAdd}, ...(prev || [])]);
+
+        toast({ title: "Sucesso!", description: "Despesa registrada com sucesso." });
         setNewPurchase(initialPurchaseState);
         setAddDialogOpen(false);
     } catch (error) {
