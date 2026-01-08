@@ -67,33 +67,39 @@ export default function ExpensesPage() {
   const { data: materials, isLoading: isLoadingMaterials } = useCollection<Material>(materialsCollection);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<MaterialCategory>(categoriesCollection);
 
-  const contasCategoryId = useMemo(() => categories?.find(c => c.name.toLowerCase() === 'contas')?.id, [categories]);
-  
-  const materialPurchasesQuery = useMemoFirebase(() => {
-    if (!user || !materials || contasCategoryId === undefined) return null;
-    const materialIds = materials.filter(m => m.categoryId !== contasCategoryId).map(m => m.id);
-    if(materialIds.length === 0) return null;
+  const allPurchasesQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(
         collection(firestore, 'professionals', user.uid, 'materialPurchases'),
-        where('materialId', 'in', materialIds),
         orderBy('purchaseDate', 'desc')
     );
-  }, [firestore, user, materials, contasCategoryId]);
+  }, [firestore, user]);
 
-  const accountExpensesQuery = useMemoFirebase(() => {
-      if (!user || !materials || !contasCategoryId) return null;
-      const materialIds = materials.filter(m => m.categoryId === contasCategoryId).map(m => m.id);
-      if (materialIds.length === 0) return null;
-      return query(
-          collection(firestore, 'professionals', user.uid, 'materialPurchases'),
-          where('materialId', 'in', materialIds),
-          orderBy('purchaseDate', 'desc')
-      );
-  }, [firestore, user, materials, contasCategoryId]);
+  const { data: allPurchases, isLoading: isLoadingPurchases, loadMore, hasMore } = useCollection<MaterialPurchase>(allPurchasesQuery, PAGE_SIZE);
 
+  const contasCategoryId = useMemo(() => categories?.find(c => c.name.toLowerCase() === 'contas')?.id, [categories]);
 
-  const { data: materialPurchases, isLoading: isLoadingMaterialPurchases, loadMore, hasMore } = useCollection<MaterialPurchase>(materialPurchasesQuery, PAGE_SIZE);
-  const { data: accountExpenses, isLoading: isLoadingAccountExpenses } = useCollection<MaterialPurchase>(accountExpensesQuery, 100); // Load all account expenses for now
+  const { materialPurchases, accountExpenses } = useMemo(() => {
+    if (!allPurchases || !materials || contasCategoryId === undefined) {
+      return { materialPurchases: [], accountExpenses: [] };
+    }
+    const materialIdToCategory = new Map(materials.map(m => [m.id, m.categoryId]));
+
+    const accountExpenses: MaterialPurchase[] = [];
+    const materialPurchases: MaterialPurchase[] = [];
+
+    allPurchases.forEach(purchase => {
+      const categoryId = materialIdToCategory.get(purchase.materialId);
+      if (categoryId === contasCategoryId) {
+        accountExpenses.push(purchase);
+      } else {
+        materialPurchases.push(purchase);
+      }
+    });
+
+    return { materialPurchases, accountExpenses };
+  }, [allPurchases, materials, contasCategoryId]);
+
   
  const handleAddPurchase = async () => {
     if (!user || !materialsCollection || !categoriesCollection || !firestore) return;
@@ -193,8 +199,7 @@ export default function ExpensesPage() {
   const isCreatingNewMaterial = !!(newPurchase.materialName && !newPurchase.materialId && !materials?.some(m => m.name.toLowerCase() === newPurchase.materialName.toLowerCase()));
   const showUnitOfMeasure = isCreatingNewMaterial && newPurchase.categoryName.toLowerCase() !== 'contas';
   
-  const isLoading = isLoadingMaterialPurchases || isLoadingMaterials || isLoadingCategories || isLoadingAccountExpenses;
-  const allPurchases = useMemo(() => [...(materialPurchases || []), ...(accountExpenses || [])], [materialPurchases, accountExpenses]);
+  const isLoading = isLoadingPurchases || isLoadingMaterials || isLoadingCategories;
 
   return (
     <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
@@ -337,7 +342,7 @@ export default function ExpensesPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {isLoadingAccountExpenses && accountExpenses?.length === 0 && <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                            {isLoading && accountExpenses?.length === 0 && <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                             {accountExpenses?.map(p => (
                                 <TableRow key={p.id}>
                                     <TableCell>{formatDate(p.purchaseDate)}</TableCell>
@@ -349,7 +354,7 @@ export default function ExpensesPage() {
                     </Table>
                 </div>
                  <div className="grid gap-4 md:hidden">
-                    {isLoadingAccountExpenses && accountExpenses?.length === 0 && <Loader />}
+                    {isLoading && accountExpenses?.length === 0 && <Loader />}
                     {accountExpenses?.map((purchase) => (
                         <Card key={purchase.id} className="border-l-4 border-destructive">
                             <CardHeader className="p-4">
@@ -387,7 +392,7 @@ export default function ExpensesPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {isLoadingMaterialPurchases && materialPurchases?.length === 0 && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                            {isLoading && materialPurchases?.length === 0 && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                             {materialPurchases?.map(p => (
                                 <TableRow key={p.id}>
                                     <TableCell>{formatDate(p.purchaseDate)}</TableCell>
@@ -400,7 +405,7 @@ export default function ExpensesPage() {
                     </Table>
                 </div>
                 <div className="grid gap-4 md:hidden">
-                    {isLoadingMaterialPurchases && materialPurchases?.length === 0 && <Loader />}
+                    {isLoading && materialPurchases?.length === 0 && <Loader />}
                     {materialPurchases?.map((purchase) => (
                         <Card key={purchase.id}>
                             <CardHeader className="p-4">
@@ -424,8 +429,8 @@ export default function ExpensesPage() {
                 </div>
                   {hasMore && (
                     <div className="mt-4 flex justify-center">
-                        <Button onClick={loadMore} disabled={isLoadingMaterialPurchases}>
-                            {isLoadingMaterialPurchases ? 'Carregando...' : 'Carregar Mais'}
+                        <Button onClick={loadMore} disabled={isLoadingPurchases}>
+                            {isLoadingPurchases ? 'Carregando...' : 'Carregar Mais'}
                         </Button>
                     </div>
                 )}
