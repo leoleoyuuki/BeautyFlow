@@ -32,6 +32,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
+import { ExpensesChart } from '@/components/dashboard/charts';
 
 const PAGE_SIZE = 15;
 
@@ -70,7 +71,7 @@ export default function ExpensesPage() {
   }, [firestore, user]);
 
 
-  const { data: purchases, isLoading: isLoadingPurchases, loadMore, hasMore } = useCollection<MaterialPurchase>(purchasesQuery, PAGE_SIZE);
+  const { data: purchases, isLoading: isLoadingPurchases, loadMore, hasMore } = useCollection<MaterialPurchase>(purchasesQuery);
   const { data: materials, isLoading: isLoadingMaterials } = useCollection<Material>(materialsCollection);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<MaterialCategory>(categoriesCollection);
 
@@ -295,9 +296,16 @@ export default function ExpensesPage() {
         </Dialog>
       </div>
 
+      <div className="px-2 md:px-0">
+          <ExpensesChart purchases={purchases} />
+      </div>
+
        <div className="hidden md:block">
         <Card>
-            <CardContent className="mt-6">
+            <CardHeader>
+                <CardTitle>Histórico de Compras</CardTitle>
+            </CardHeader>
+            <CardContent>
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
