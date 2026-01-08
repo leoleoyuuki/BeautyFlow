@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -105,58 +104,58 @@ export default function StockPage() {
         <Card>
             <CardContent className="mt-6">
                 <div className="overflow-x-auto">
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead>Material</TableHead>
-                        <TableHead>Categoria</TableHead>
-                        <TableHead>Estoque Atual</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {isLoading && !materials && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
-                    {sortedMaterials.map((material) => (
-                        <TableRow key={material.id}>
-                            <TableCell className="font-medium whitespace-nowrap">{material.name}</TableCell>
-                            <TableCell>{getCategoryName(material.categoryId)}</TableCell>
-                            <TableCell>
-                                {editingRowId === material.id ? (
-                                     <div className="flex items-center gap-2 max-w-[150px]">
-                                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, -1)}><Minus className="h-4 w-4" /></Button>
-                                        <Input 
-                                            type="number" 
-                                            value={editingStock[material.id] ?? ''} 
-                                            onChange={(e) => handleStockChange(material.id, e.target.value)}
-                                            className="h-8 w-16 text-center"
-                                        />
-                                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, 1)}><Plus className="h-4 w-4"/></Button>
-                                     </div>
-                                ) : (
-                                    <Badge variant={getStockBadgeVariant(material.stock)}>{material.stock} {material.unitOfMeasure}</Badge>
-                                )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                                {editingRowId === material.id ? (
-                                    <>
-                                        <Button variant="ghost" size="icon" onClick={() => handleSaveStock(material.id)}>
-                                            <Save className="h-4 w-4 text-primary" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={handleCancelClick}>
-                                            <X className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </>
-                                ) : (
-                                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(material)}>
-                                        <Pencil className="h-4 w-4" />
-                                        <span className="sr-only">Editar Estoque</span>
-                                    </Button>
-                                )}
-                            </TableCell>
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead>Material</TableHead>
+                            <TableHead>Categoria</TableHead>
+                            <TableHead>Estoque Atual</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                    ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                        {isLoading && !materials && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                        {sortedMaterials.map((material) => (
+                            <TableRow key={material.id}>
+                                <TableCell className="font-medium whitespace-nowrap">{material.name}</TableCell>
+                                <TableCell>{getCategoryName(material.categoryId)}</TableCell>
+                                <TableCell>
+                                    {editingRowId === material.id ? (
+                                        <div className="flex items-center gap-2 max-w-[150px]">
+                                            <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, -1)}><Minus className="h-4 w-4" /></Button>
+                                            <Input 
+                                                type="number" 
+                                                value={editingStock[material.id] ?? ''} 
+                                                onChange={(e) => handleStockChange(material.id, e.target.value)}
+                                                className="h-8 w-16 text-center"
+                                            />
+                                            <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => adjustStock(material.id, 1)}><Plus className="h-4 w-4"/></Button>
+                                        </div>
+                                    ) : (
+                                        <Badge variant={getStockBadgeVariant(material.stock)}>{material.stock} {material.unitOfMeasure}</Badge>
+                                    )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    {editingRowId === material.id ? (
+                                        <>
+                                            <Button variant="ghost" size="icon" onClick={() => handleSaveStock(material.id)}>
+                                                <Save className="h-4 w-4 text-primary" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={handleCancelClick}>
+                                                <X className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(material)}>
+                                            <Pencil className="h-4 w-4" />
+                                            <span className="sr-only">Editar Estoque</span>
+                                        </Button>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
                 </div>
                  {hasMore && (
                     <div className="mt-4 flex justify-center">
@@ -219,39 +218,6 @@ export default function StockPage() {
             <div className="mt-4 flex justify-center">
                 <Button onClick={loadMore} disabled={isLoadingMaterials}>
                     {isLoadingMaterials ? 'Carregando...' : 'Carregar Mais'}
-                        </Button>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-      </div>
-      
-       <div className="grid gap-4 md:hidden">
-        {isLoading && !purchases && <Loader />}
-        {purchases?.map((purchase) => (
-            <Card key={purchase.id}>
-                <CardHeader>
-                    <CardTitle className="text-lg flex justify-between items-center">
-                        <span>{getMaterialName(purchase.materialId)}</span>
-                        <span className="text-base font-medium">{formatCurrency(purchase.totalPrice)}</span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-2">
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Quantidade:</span>
-                        <span>{purchase.quantity}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Data:</span>
-                        <span>{formatDate(purchase.purchaseDate)}</span>
-                    </div>
-                </CardContent>
-            </Card>
-        ))}
-        {hasMore && (
-            <div className="mt-4 flex justify-center">
-                <Button onClick={loadMore} disabled={isLoadingPurchases}>
-                    {isLoadingPurchases ? 'Carregando...' : 'Carregar Mais'}
                 </Button>
             </div>
         )}
@@ -259,5 +225,3 @@ export default function StockPage() {
     </div>
   );
 }
-
-    
