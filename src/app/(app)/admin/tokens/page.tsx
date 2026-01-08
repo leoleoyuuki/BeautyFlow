@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import { FullscreenLoader, Loader } from '@/components/ui/loader';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const ADMIN_UID = 'fE4wQQun2zgDr39cwH0AKoOADkT2';
+const PAGE_SIZE = 15;
 
 export default function TokenGeneratorPage() {
   const { user, isUserLoading, firestore } = useFirebase();
@@ -29,10 +30,10 @@ export default function TokenGeneratorPage() {
   const tokensQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     const tokensCollection = collection(firestore, 'activationTokens');
-    return query(tokensCollection, orderBy('createdAt', 'desc'), limit(15));
+    return query(tokensCollection, orderBy('createdAt', 'desc'));
   }, [firestore]);
 
-  const { data: tokens, isLoading: isLoadingTokens } = useCollection<ActivationToken>(tokensQuery);
+  const { data: tokens, isLoading: isLoadingTokens, loadMore, hasMore } = useCollection<ActivationToken>(tokensQuery, PAGE_SIZE);
 
   const handleGenerateToken = async () => {
     if (!firestore) return;
@@ -109,7 +110,7 @@ export default function TokenGeneratorPage() {
       <Card>
         <CardHeader>
             <CardTitle>Tokens Gerados</CardTitle>
-            <CardDescription>Lista dos últimos 15 tokens de ativação criados.</CardDescription>
+            <CardDescription>Lista dos últimos tokens de ativação criados.</CardDescription>
         </CardHeader>
         <CardContent>
              <div className="hidden md:block">
@@ -124,7 +125,7 @@ export default function TokenGeneratorPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoadingTokens && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                        {isLoadingTokens && !tokens && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                         {tokens?.map(token => (
                             <TableRow key={token.id}>
                                 <TableCell className="font-mono">{token.id}</TableCell>
@@ -140,9 +141,16 @@ export default function TokenGeneratorPage() {
                         ))}
                     </TableBody>
                 </Table>
+                {hasMore && (
+                    <div className="mt-4 flex justify-center">
+                        <Button onClick={loadMore} disabled={isLoadingTokens}>
+                            {isLoadingTokens ? 'Carregando...' : 'Carregar Mais'}
+                        </Button>
+                    </div>
+                )}
              </div>
              <div className="grid gap-4 md:hidden">
-                {isLoadingTokens && <Loader />}
+                {isLoadingTokens && !tokens && <Loader />}
                 {tokens?.map(token => (
                     <Card key={token.id}>
                          <CardHeader>
@@ -169,6 +177,13 @@ export default function TokenGeneratorPage() {
                          </CardContent>
                     </Card>
                 ))}
+                 {hasMore && (
+                    <div className="mt-4 flex justify-center">
+                        <Button onClick={loadMore} disabled={isLoadingTokens}>
+                            {isLoadingTokens ? 'Carregando...' : 'Carregar Mais'}
+                        </Button>
+                    </div>
+                )}
              </div>
         </CardContent>
       </Card>

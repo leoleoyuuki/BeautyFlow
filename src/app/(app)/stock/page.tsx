@@ -17,8 +17,10 @@ import { Badge } from '@/components/ui/badge';
 import { Minus, Plus, Pencil, Save, X } from 'lucide-react';
 import type { Material, MaterialCategory } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
+
+const PAGE_SIZE = 15;
 
 export default function StockPage() {
   const { firestore, user } = useFirebase();
@@ -28,7 +30,7 @@ export default function StockPage() {
   const materialsQuery = useMemoFirebase(() => {
     if (!user) return null;
     const materialsCollection = collection(firestore, 'professionals', user.uid, 'materials');
-    return query(materialsCollection, orderBy('name'), limit(15));
+    return query(materialsCollection, orderBy('name'));
   }, [firestore, user]);
 
   const categoriesCollection = useMemoFirebase(() => {
@@ -36,7 +38,7 @@ export default function StockPage() {
     return collection(firestore, 'professionals', user.uid, 'materialCategories');
   }, [firestore, user]);
 
-  const { data: materials, isLoading: isLoadingMaterials } = useCollection<Material>(materialsQuery);
+  const { data: materials, isLoading: isLoadingMaterials, loadMore, hasMore } = useCollection<Material>(materialsQuery, PAGE_SIZE);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<MaterialCategory>(categoriesCollection);
   
   const getCategoryName = (id: string) => categories?.find(c => c.id === id)?.name || '...';
@@ -113,7 +115,7 @@ export default function StockPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {isLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                    {isLoading && !materials && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                     {sortedMaterials.map((material) => (
                         <TableRow key={material.id}>
                             <TableCell className="font-medium whitespace-nowrap">{material.name}</TableCell>
@@ -156,13 +158,20 @@ export default function StockPage() {
                     </TableBody>
                 </Table>
                 </div>
+                 {hasMore && (
+                    <div className="mt-4 flex justify-center">
+                        <Button onClick={loadMore} disabled={isLoadingMaterials}>
+                            {isLoadingMaterials ? 'Carregando...' : 'Carregar Mais'}
+                        </Button>
+                    </div>
+                )}
             </CardContent>
         </Card>
       </div>
 
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
-        {isLoading && <Loader />}
+        {isLoading && !materials && <Loader />}
         {sortedMaterials.map((material) => (
             <Card key={material.id}>
                 <CardHeader>
@@ -206,6 +215,13 @@ export default function StockPage() {
                 </CardContent>
             </Card>
         ))}
+         {hasMore && (
+            <div className="mt-4 flex justify-center">
+                <Button onClick={loadMore} disabled={isLoadingMaterials}>
+                    {isLoadingMaterials ? 'Carregando...' : 'Carregar Mais'}
+                </Button>
+            </div>
+        )}
        </div>
     </div>
   );

@@ -41,7 +41,7 @@ import { CalendarIcon, PlusCircle, Pencil, Trash } from 'lucide-react';
 import { formatDate, cn, formatCurrency } from '@/lib/utils';
 import type { Client, Service, Appointment } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -49,6 +49,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Loader } from '@/components/ui/loader';
+
+const PAGE_SIZE = 15;
 
 export default function AppointmentsPage() {
   const { firestore, user } = useFirebase();
@@ -86,7 +88,7 @@ export default function AppointmentsPage() {
   const appointmentsQuery = useMemoFirebase(() => {
     if (!user) return null;
     const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
-    return query(appointmentsCollection, orderBy('appointmentDate', 'desc'), limit(15));
+    return query(appointmentsCollection, orderBy('appointmentDate', 'desc'));
   }, [firestore, user]);
   
   const clientsCollection = useMemoFirebase(() => {
@@ -99,7 +101,7 @@ export default function AppointmentsPage() {
     return collection(firestore, 'professionals', user.uid, 'services');
   }, [firestore, user]);
 
-  const { data: appointments, isLoading: isLoadingAppointments } = useCollection<Appointment>(appointmentsQuery);
+  const { data: appointments, isLoading: isLoadingAppointments, loadMore, hasMore } = useCollection<Appointment>(appointmentsQuery, PAGE_SIZE);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
   const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesCollection);
 
@@ -252,6 +254,8 @@ export default function AppointmentsPage() {
       </Popover>
     );
   };
+  
+  const isLoading = isLoadingAppointments || isLoadingClients || isLoadingServices;
 
   return (
     <div className="flex-1 space-y-4 p-2 md:p-6 pt-6">
@@ -590,7 +594,7 @@ export default function AppointmentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                  {isLoading && !appointments && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                   {appointments?.map((appointment) => {
                     const client = clients?.find(c => c.id === appointment.clientId);
                     const service = services?.find(s => s.id === appointment.serviceId);
@@ -632,13 +636,20 @@ export default function AppointmentsPage() {
                 </TableBody>
               </Table>
             </div>
+             {hasMore && (
+                <div className="mt-4 flex justify-center">
+                    <Button onClick={loadMore} disabled={isLoadingAppointments}>
+                        {isLoadingAppointments ? 'Carregando...' : 'Carregar Mais'}
+                    </Button>
+                </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
-        {(isLoadingAppointments || isLoadingClients || isLoadingServices) && <Loader />}
+        {isLoading && !appointments && <Loader />}
         {appointments?.map((appointment) => {
             const client = clients?.find(c => c.id === appointment.clientId);
             const service = services?.find(s => s.id === appointment.serviceId);
@@ -692,6 +703,13 @@ export default function AppointmentsPage() {
               </Card>
             )
         })}
+        {hasMore && (
+            <div className="mt-4 flex justify-center">
+                <Button onClick={loadMore} disabled={isLoadingAppointments}>
+                    {isLoadingAppointments ? 'Carregando...' : 'Carregar Mais'}
+                </Button>
+            </div>
+        )}
       </div>
     </div>
   );

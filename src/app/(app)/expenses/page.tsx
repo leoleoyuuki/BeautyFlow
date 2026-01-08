@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlusCircle } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, doc, runTransaction, DocumentReference, query, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, doc, runTransaction, DocumentReference, query, orderBy } from 'firebase/firestore';
 import type { MaterialPurchase, Material, MaterialCategory } from '@/lib/types';
 import {
   Table,
@@ -33,6 +33,7 @@ import { formatDate, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
 
+const PAGE_SIZE = 15;
 
 export default function ExpensesPage() {
   const { firestore, user } = useFirebase();
@@ -55,7 +56,7 @@ export default function ExpensesPage() {
   const purchasesQuery = useMemoFirebase(() => {
     if (!user) return null;
     const purchasesCollection = collection(firestore, 'professionals', user.uid, 'materialPurchases');
-    return query(purchasesCollection, orderBy('purchaseDate', 'desc'), limit(15));
+    return query(purchasesCollection, orderBy('purchaseDate', 'desc'));
   }, [firestore, user]);
 
   const materialsCollection = useMemoFirebase(() => {
@@ -69,7 +70,7 @@ export default function ExpensesPage() {
   }, [firestore, user]);
 
 
-  const { data: purchases, isLoading: isLoadingPurchases } = useCollection<MaterialPurchase>(purchasesQuery);
+  const { data: purchases, isLoading: isLoadingPurchases, loadMore, hasMore } = useCollection<MaterialPurchase>(purchasesQuery, PAGE_SIZE);
   const { data: materials, isLoading: isLoadingMaterials } = useCollection<Material>(materialsCollection);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<MaterialCategory>(categoriesCollection);
 
@@ -144,13 +145,13 @@ export default function ExpensesPage() {
                 const newStock = (materialSnap.data()?.stock || 0) + Number(localPurchaseState.quantity);
                 transaction.update(materialRef, { stock: newStock });
                 
-                const purchaseRef = doc(purchasesCollection);
+                const purchaseRef = doc(collection(firestore, 'professionals', user.uid, 'materialPurchases'));
                 transaction.set(purchaseRef, purchaseToAdd);
             });
             toast({ title: "Sucesso!", description: "Compra registrada e estoque atualizado." });
         } else {
             // For "Contas", just add the purchase record without a transaction
-            await addDoc(purchasesCollection, purchaseToAdd);
+            await addDoc(collection(firestore, 'professionals', user.uid, 'materialPurchases'), purchaseToAdd);
             toast({ title: "Sucesso!", description: "Despesa registrada." });
         }
 
@@ -170,6 +171,8 @@ export default function ExpensesPage() {
   
   const isCreatingNewMaterial = !!(newPurchase.materialName && !newPurchase.materialId && !materials?.some(m => m.name.toLowerCase() === newPurchase.materialName.toLowerCase()));
   const showUnitOfMeasure = isCreatingNewMaterial && newPurchase.categoryName.toLowerCase() !== 'contas';
+  
+  const isLoading = isLoadingPurchases || isLoadingMaterials || isLoadingCategories;
 
 
   return (
@@ -306,7 +309,7 @@ export default function ExpensesPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {isLoadingPurchases && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                            {isLoading && !purchases && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                             {purchases?.map(p => (
                                 <TableRow key={p.id}>
                                     <TableCell>{formatDate(p.purchaseDate)}</TableCell>
@@ -318,12 +321,19 @@ export default function ExpensesPage() {
                         </TableBody>
                     </Table>
                 </div>
+                 {hasMore && (
+                    <div className="mt-4 flex justify-center">
+                        <Button onClick={loadMore} disabled={isLoadingPurchases}>
+                            {isLoadingPurchases ? 'Carregando...' : 'Carregar Mais'}
+                        </Button>
+                    </div>
+                )}
             </CardContent>
         </Card>
       </div>
       
        <div className="grid gap-4 md:hidden">
-        {(isLoadingPurchases || isLoadingMaterials) && <Loader />}
+        {isLoading && !purchases && <Loader />}
         {purchases?.map((purchase) => (
             <Card key={purchase.id}>
                 <CardHeader>
@@ -344,6 +354,13 @@ export default function ExpensesPage() {
                 </CardContent>
             </Card>
         ))}
+        {hasMore && (
+            <div className="mt-4 flex justify-center">
+                <Button onClick={loadMore} disabled={isLoadingPurchases}>
+                    {isLoadingPurchases ? 'Carregando...' : 'Carregar Mais'}
+                </Button>
+            </div>
+        )}
        </div>
     </div>
   );

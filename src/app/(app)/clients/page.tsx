@@ -37,9 +37,11 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle, Pencil, Phone, Trash } from 'lucide-react';
 import type { Client } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Loader } from '@/components/ui/loader';
+
+const PAGE_SIZE = 15;
 
 export default function ClientsPage() {
   const { firestore, user } = useFirebase();
@@ -53,10 +55,10 @@ export default function ClientsPage() {
   const clientsQuery = useMemoFirebase(() => {
     if (!user) return null;
     const clientsCollection = collection(firestore, 'professionals', user.uid, 'clients');
-    return query(clientsCollection, orderBy('createdAt', 'desc'), limit(15));
+    return query(clientsCollection, orderBy('createdAt', 'desc'));
   }, [firestore, user]);
 
-  const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
+  const { data: clients, isLoading, loadMore, hasMore } = useCollection<Client>(clientsQuery, PAGE_SIZE);
 
   const handleAddClient = () => {
     if (!firestore || !user) return;
@@ -205,7 +207,7 @@ export default function ClientsPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {isLoading && <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                    {isLoading && !clients && <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                     {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
                         <TableRow key={client.id}>
                         <TableCell className="font-medium whitespace-nowrap">{client.name}</TableCell>
@@ -241,13 +243,20 @@ export default function ClientsPage() {
                     </TableBody>
                 </Table>
                 </div>
+                 {hasMore && (
+                    <div className="mt-4 flex justify-center">
+                        <Button onClick={loadMore} disabled={isLoading}>
+                            {isLoading ? 'Carregando...' : 'Carregar Mais'}
+                        </Button>
+                    </div>
+                )}
             </CardContent>
         </Card>
       </div>
 
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
-        {isLoading && <Loader />}
+        {isLoading && !clients && <Loader />}
         {clients?.sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
             <Card key={client.id}>
                 <CardHeader>
@@ -289,6 +298,13 @@ export default function ClientsPage() {
                 </CardContent>
             </Card>
         ))}
+        {hasMore && (
+            <div className="mt-4 flex justify-center">
+                <Button onClick={loadMore} disabled={isLoading}>
+                    {isLoading ? 'Carregando...' : 'Carregar Mais'}
+                </Button>
+            </div>
+        )}
        </div>
     </div>
   );

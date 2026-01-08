@@ -37,13 +37,14 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle, Pencil, Trash } from 'lucide-react';
 import type { Service } from '@/lib/types';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { formatCurrency } from '@/lib/utils';
 import { Loader } from '@/components/ui/loader';
 
+const PAGE_SIZE = 15;
 
 export default function ServicesPage() {
   const { firestore, user } = useFirebase();
@@ -56,10 +57,10 @@ export default function ServicesPage() {
   const servicesQuery = useMemoFirebase(() => {
     if (!user) return null;
     const servicesCollection = collection(firestore, 'professionals', user.uid, 'services');
-    return query(servicesCollection, orderBy('name'), limit(15));
+    return query(servicesCollection, orderBy('name'));
   }, [firestore, user]);
 
-  const { data: services, isLoading } = useCollection<Service>(servicesQuery);
+  const { data: services, isLoading, loadMore, hasMore } = useCollection<Service>(servicesQuery, PAGE_SIZE);
 
   const handleAddService = () => {
     if (!firestore || !user || !newService.name) return;
@@ -234,7 +235,7 @@ export default function ServicesPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {isLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                    {isLoading && !services && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                     {services?.map((service) => (
                     <TableRow key={service.id}>
                         <TableCell className="font-medium whitespace-nowrap">{service.name}</TableCell>
@@ -271,13 +272,20 @@ export default function ServicesPage() {
                 </TableBody>
                 </Table>
             </div>
+             {hasMore && (
+                <div className="mt-4 flex justify-center">
+                    <Button onClick={loadMore} disabled={isLoading}>
+                        {isLoading ? 'Carregando...' : 'Carregar Mais'}
+                    </Button>
+                </div>
+            )}
             </CardContent>
         </Card>
       </div>
 
        {/* Mobile Cards */}
        <div className="grid gap-4 md:hidden">
-        {isLoading && <Loader />}
+        {isLoading && !services && <Loader />}
         {services?.map((service) => (
           <Card key={service.id}>
             <CardHeader>
@@ -319,6 +327,13 @@ export default function ServicesPage() {
             </CardContent>
           </Card>
         ))}
+         {hasMore && (
+            <div className="mt-4 flex justify-center">
+                <Button onClick={loadMore} disabled={isLoading}>
+                    {isLoading ? 'Carregando...' : 'Carregar Mais'}
+                </Button>
+            </div>
+        )}
       </div>
     </div>
   );
