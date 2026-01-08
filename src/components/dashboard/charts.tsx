@@ -8,7 +8,7 @@ import { ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/compo
 import { formatCurrency } from '@/lib/utils';
 import { subMonths, format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Service, Summary } from '@/lib/types';
+import type { Service, Summary, MaterialPurchase } from '@/lib/types';
 
 interface RevenueChartProps {
   isRevenueVisible: boolean;
@@ -151,3 +151,56 @@ export function NewClientsChart({ summary }: NewClientsChartProps) {
       </Card>
     );
   }
+
+interface ExpensesChartProps {
+  purchases: MaterialPurchase[] | null;
+}
+
+export function ExpensesChart({ purchases }: ExpensesChartProps) {
+  const chartData = useMemo(() => {
+    const monthlyTotals: { [key: string]: number } = {};
+    const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
+
+    months.forEach(monthDate => {
+        const monthKey = format(monthDate, 'yyyy-MM');
+        monthlyTotals[monthKey] = 0;
+    });
+
+    purchases?.forEach(purchase => {
+        const monthKey = format(new Date(purchase.purchaseDate), 'yyyy-MM');
+        if (monthlyTotals.hasOwnProperty(monthKey)) {
+            monthlyTotals[monthKey] += purchase.totalPrice;
+        }
+    });
+
+    return Object.entries(monthlyTotals).map(([monthKey, total]) => ({
+      month: format(parse(monthKey, 'yyyy-MM', new Date()), 'MMM', { locale: ptBR }),
+      total,
+    }));
+  }, [purchases]);
+  
+  return (
+     <Card>
+        <CardHeader>
+          <CardTitle>Gastos Mensais</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={{}} className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <XAxis dataKey="month" />
+                <YAxis tickFormatter={value => formatCurrency(Number(value))} />
+                <Tooltip 
+                    content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} 
+                    cursor={false}
+                />
+                <Bar dataKey="total" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+  )
+}
+
+    

@@ -219,6 +219,39 @@ export default function StockPage() {
             <div className="mt-4 flex justify-center">
                 <Button onClick={loadMore} disabled={isLoadingMaterials}>
                     {isLoadingMaterials ? 'Carregando...' : 'Carregar Mais'}
+                        </Button>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+      </div>
+      
+       <div className="grid gap-4 md:hidden">
+        {isLoading && !purchases && <Loader />}
+        {purchases?.map((purchase) => (
+            <Card key={purchase.id}>
+                <CardHeader>
+                    <CardTitle className="text-lg flex justify-between items-center">
+                        <span>{getMaterialName(purchase.materialId)}</span>
+                        <span className="text-base font-medium">{formatCurrency(purchase.totalPrice)}</span>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-2">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Quantidade:</span>
+                        <span>{purchase.quantity}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Data:</span>
+                        <span>{formatDate(purchase.purchaseDate)}</span>
+                    </div>
+                </CardContent>
+            </Card>
+        ))}
+        {hasMore && (
+            <div className="mt-4 flex justify-center">
+                <Button onClick={loadMore} disabled={isLoadingPurchases}>
+                    {isLoadingPurchases ? 'Carregando...' : 'Carregar Mais'}
                 </Button>
             </div>
         )}
@@ -226,3 +259,5 @@ export default function StockPage() {
     </div>
   );
 }
+
+    
