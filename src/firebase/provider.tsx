@@ -9,7 +9,6 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { usePathname, useRouter } from 'next/navigation';
 import type { Professional } from '@/lib/types';
 import { isAfter } from 'date-fns';
-import { backfillSummaryForUser } from '@/firebase/summary-backfill';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -88,23 +87,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       async (firebaseUser) => {
         if (firebaseUser) {
           const professionalRef = doc(firestore, 'professionals', firebaseUser.uid);
-          const summaryRef = doc(firestore, 'professionals', firebaseUser.uid, 'summary', 'main');
-
-          const [professionalSnap, summarySnap] = await Promise.all([
-            getDoc(professionalRef),
-            getDoc(summaryRef)
-          ]);
+          
+          const professionalSnap = await getDoc(professionalRef);
 
           if (professionalSnap.exists()) {
              const professionalData = professionalSnap.data() as Professional;
              const isActive = professionalData.activationExpiresAt ? isAfter(new Date(professionalData.activationExpiresAt), new Date()) : false;
-
-             if (isActive && !summarySnap.exists()) {
-                 // User is active but has no summary doc - likely an existing user.
-                 // Trigger the backfill process in the background. No need to await it.
-                 backfillSummaryForUser(firestore, firebaseUser.uid);
-             }
-
+             
              setUserAuthState({
               user: firebaseUser,
               isUserLoading: false,
@@ -112,6 +101,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               professional: professionalData,
               isAccountActive: isActive
             });
+
           } else {
             // New user, professional profile not created yet, considered inactive
              setUserAuthState({

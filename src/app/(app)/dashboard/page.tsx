@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +15,7 @@ import { useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase'
 import { collection, doc } from 'firebase/firestore';
 import type { Appointment, Client, Service, Summary } from '@/lib/types';
 import { Loader } from '@/components/ui/loader';
+import { backfillSummaryForUser } from '@/firebase/summary-backfill';
 
 
 export default function DashboardPage() {
@@ -45,6 +46,16 @@ export default function DashboardPage() {
   const { data: clients } = useCollection<Client>(clientsCollection);
   const { data: services } = useCollection<Service>(servicesCollection);
   const { data: summary, isLoading: isLoadingSummary } = useDoc<Summary>(summaryDoc);
+
+  useEffect(() => {
+    // This effect handles the backfill logic for existing users
+    if (firestore && user && !isLoadingSummary && summary === null) {
+      // If summary is not loading and is null, it means the document doesn't exist.
+      // We trigger the backfill process for this user.
+      backfillSummaryForUser(firestore, user.uid);
+    }
+  }, [firestore, user, summary, isLoadingSummary]);
+
 
   if (isLoadingSummary) {
     return <div className="flex h-[80vh] w-full items-center justify-center"><Loader /></div>;
