@@ -56,7 +56,7 @@ export default function ServicesPage() {
 
   const servicesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collection(firestore, 'professionals', user.uid, 'services'), orderBy('createdAt', 'desc'));
+    return query(collection(firestore, 'professionals', user.uid, 'services'), orderBy('name', 'asc'));
   }, [firestore, user]);
 
   const { data: services, isLoading, loadMore, hasMore } = useCollection<Service>(servicesQuery, PAGE_SIZE);
@@ -338,3 +338,5 @@ export default function ServicesPage() {
     </div>
   );
 }
+
+    
