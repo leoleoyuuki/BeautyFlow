@@ -137,7 +137,7 @@
         },
         "renewalDate": {
           "type": "string",
-          "description": "The calculated date when the service should be renewed.",
+          "description": "The calculated date when the service should be renewed, used for indexing.",
           "format": "date-time"
         },
         "notes": {
@@ -155,7 +155,8 @@
         "serviceId",
         "professionalId",
         "appointmentDate",
-        "validityPeriodMonths"
+        "validityPeriodMonths",
+        "renewalDate"
       ]
     },
     "ActivationToken": {
@@ -344,7 +345,7 @@
           "schema": {
             "$ref": "#/backend/entities/Appointment"
           },
-          "description": "Stores appointment details for each professional. Path-based ownership is enforced by the professionalId. Includes denormalized 'professionalId' and 'clientId' for authorization independence.",
+          "description": "Stores appointment details for each professional. Path-based ownership is enforced by the professionalId. Includes denormalized 'professionalId' and 'clientId' for authorization independence. The 'renewalDate' field is pre-calculated and indexed for efficient querying of upcoming renewals.",
           "params": [
             {
               "name": "professionalId",

@@ -51,3 +51,4 @@ export * from './errors';
 export * from './error-emitter';
 export * from './summary-updates';
 export * from './summary-backfill';
+export * from './backfills/appointment-renewal-date';
