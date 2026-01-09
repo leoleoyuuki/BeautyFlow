@@ -14,28 +14,25 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
-import { addDays, subDays, differenceInDays, isBefore, isAfter, addMonths } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import { MessageSquare } from 'lucide-react';
 import type { Client, Service, Appointment } from '@/lib/types';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, startAfter, getDocs, DocumentSnapshot, doc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, startAfter, getDocs, DocumentSnapshot, doc, where } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
+import { backfillRenewalDates } from '@/firebase/backfills/appointment-renewal-date';
 
 const PAGE_SIZE = 12;
 
-// This custom hook handles the logic for fetching paginated appointments.
-// It fetches raw appointments, and the filtering logic is handled by the component.
-function usePaginatedAppointments(
-    baseQuery: ReturnType<typeof query> | null
-) {
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+function usePaginatedRenewals(baseQuery: ReturnType<typeof query> | null, enabled: boolean) {
+    const [renewals, setRenewals] = useState<Appointment[]>([]);
+    const [isLoading, setIsLoading] = useState(enabled);
     const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
     const [hasMore, setHasMore] = useState(true);
 
-    const fetchAppointments = useCallback(async (loadMore = false) => {
-        if (!baseQuery || (!hasMore && loadMore)) {
-            setIsLoading(false);
+    const fetchRenewals = useCallback(async (loadMore = false) => {
+        if (!baseQuery || !enabled || (!hasMore && loadMore)) {
+            if (enabled) setIsLoading(false);
             return;
         }
         
@@ -48,38 +45,36 @@ function usePaginatedAppointments(
 
         try {
             const snapshot = await getDocs(finalQuery);
-            const newAppointments = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Appointment));
+            const newRenewals = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Appointment));
             
             setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
-            setHasMore(newAppointments.length === PAGE_SIZE);
-
-            setAppointments(prev => {
+            setHasMore(newRenewals.length === PAGE_SIZE);
+            
+            setRenewals(prev => {
                 const existingIds = new Set(prev.map(r => r.id));
-                const uniqueNewAppointments = newAppointments.filter(r => !existingIds.has(r.id));
-                return loadMore ? [...prev, ...uniqueNewAppointments] : newAppointments;
+                const uniqueNewRenewals = newRenewals.filter(r => !existingIds.has(r.id));
+                return loadMore ? [...prev, ...uniqueNewRenewals] : newRenewals;
             });
+
         } catch (error) {
-            console.error("Error fetching appointments:", error);
+            console.error("Error fetching renewals:", error);
         } finally {
             setIsLoading(false);
         }
-    }, [baseQuery, lastDoc, hasMore]);
+    }, [baseQuery, lastDoc, hasMore, enabled, PAGE_SIZE]);
 
-    // Initial fetch
     useEffect(() => {
-        if (baseQuery) {
-            setAppointments([]); // Reset on new query
+        if (enabled) {
+            setRenewals([]);
             setLastDoc(null);
             setHasMore(true);
-            fetchAppointments(false);
+            fetchRenewals(false);
         }
-    }, [baseQuery]);
+    }, [baseQuery, enabled]);
 
-    return { appointments, isLoading, hasMore, loadMore: () => fetchAppointments(true) };
+    return { renewals, isLoading, hasMore, loadMore: () => fetchRenewals(true), setRenewals };
 }
 
-
-// A component to render a single row, fetching its own related data.
 const RenewalRow = React.memo(({ renewal }: { renewal: Appointment }) => {
     const { firestore, user } = useFirebase();
 
@@ -97,7 +92,7 @@ const RenewalRow = React.memo(({ renewal }: { renewal: Appointment }) => {
     const { data: service, isLoading: isLoadingService } = useDoc<Service>(serviceDoc);
 
     const renewalDetails = useMemo(() => {
-        const renewalDate = renewal.renewalDate ? new Date(renewal.renewalDate) : addMonths(new Date(renewal.appointmentDate), renewal.validityPeriodMonths);
+        const renewalDate = new Date(renewal.renewalDate!);
         const daysLeft = differenceInDays(renewalDate, new Date());
         return { renewalDate, daysLeft };
     }, [renewal]);
@@ -107,7 +102,6 @@ const RenewalRow = React.memo(({ renewal }: { renewal: Appointment }) => {
     }
     
     if (!client || !service) {
-        // This can happen if a client or service was deleted. We just don't render the row.
         return null;
     }
 
@@ -160,43 +154,57 @@ RenewalRow.displayName = 'RenewalRow';
 
 export default function RenewalsPage() {
     const { firestore, user } = useFirebase();
-    
-    // Base query to fetch all appointments, ordered by date.
-    const baseAppointmentsQuery = useMemoFirebase(() => {
-        if (!user) return null;
-        const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
-        return query(appointmentsCollection, orderBy('appointmentDate', 'desc'));
+    const [isBackfilling, setIsBackfilling] = useState(true);
+    const [backfillCompleted, setBackfillCompleted] = useState(false);
+
+    useEffect(() => {
+        const runBackfill = async () => {
+            if (user && firestore) {
+                 // Use a session storage to avoid re-running this for the same session
+                const backfillFlag = `backfill_renewals_${user.uid}`;
+                if (!sessionStorage.getItem(backfillFlag)) {
+                    setIsBackfilling(true);
+                    await backfillRenewalDates(firestore, user.uid);
+                    sessionStorage.setItem(backfillFlag, 'true');
+                }
+                setBackfillCompleted(true);
+                setIsBackfilling(false);
+            }
+        }
+        runBackfill();
     }, [user, firestore]);
     
-    const { 
-        appointments: allAppointments, 
-        isLoading, 
-        hasMore, 
-        loadMore 
-    } = usePaginatedAppointments(baseAppointmentsQuery);
+    // Query for upcoming renewals
+    const upcomingQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(
+            collection(firestore, 'professionals', user.uid, 'appointments'),
+            where('renewalDate', '>=', new Date().toISOString()),
+            orderBy('renewalDate', 'asc')
+        );
+    }, [user, firestore]);
+    
+    // Query for expired renewals
+    const expiredQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(
+            collection(firestore, 'professionals', user.uid, 'appointments'),
+            where('renewalDate', '<', new Date().toISOString()),
+            orderBy('renewalDate', 'desc')
+        );
+    }, [user, firestore]);
 
-    const { upcomingRenewals, expiredRenewals } = useMemo(() => {
-        const now = new Date();
-        const upcoming: Appointment[] = [];
-        const expired: Appointment[] = [];
-
-        allAppointments.forEach(app => {
-            const renewalDate = app.renewalDate ? new Date(app.renewalDate) : addMonths(new Date(app.appointmentDate), app.validityPeriodMonths);
-            
-            if (isAfter(renewalDate, now)) {
-                upcoming.push(app);
-            } else {
-                expired.push(app);
-            }
-        });
-        
-        // Sort upcoming from soonest to latest
-        upcoming.sort((a, b) => new Date(a.renewalDate!).getTime() - new Date(b.renewalDate!).getTime());
-        // Expired are already sorted by appointmentDate desc, which is fine.
-
-        return { upcomingRenewals: upcoming, expiredRenewals: expired };
-    }, [allAppointments]);
-
+    const { renewals: upcomingRenewals, isLoading: isLoadingUpcoming, hasMore: hasMoreUpcoming, loadMore: loadMoreUpcoming } = usePaginatedRenewals(upcomingQuery, backfillCompleted);
+    const { renewals: expiredRenewals, isLoading: isLoadingExpired, hasMore: hasMoreExpired, loadMore: loadMoreExpired } = usePaginatedRenewals(expiredQuery, backfillCompleted);
+    
+    if (isBackfilling && !backfillCompleted) {
+        return (
+            <div className="flex h-[80vh] flex-col items-center justify-center gap-4">
+                <Loader text="Preparando seus dados de renovação pela primeira vez..." />
+                <p className="text-sm text-muted-foreground">Isso pode levar um instante e só acontecerá uma vez.</p>
+            </div>
+        )
+    }
 
     return (
         <div className="flex-1 space-y-6 p-2 md:p-6 pt-6">
@@ -225,14 +233,21 @@ export default function RenewalsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {isLoading && allAppointments.length === 0 && <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                                    {isLoadingUpcoming && upcomingRenewals.length === 0 && <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                                     {upcomingRenewals.map((renewal) => <RenewalRow key={renewal.id} renewal={renewal} />)}
-                                     {upcomingRenewals.length === 0 && !isLoading && (
+                                     {!isLoadingUpcoming && upcomingRenewals.length === 0 && (
                                         <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Nenhuma renovação futura encontrada.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
                         </div>
+                        {hasMoreUpcoming && (
+                            <div className="mt-4 flex justify-center">
+                                <Button onClick={loadMoreUpcoming} disabled={isLoadingUpcoming}>
+                                    {isLoadingUpcoming ? 'Carregando...' : 'Carregar Mais'}
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -255,24 +270,23 @@ export default function RenewalsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {isLoading && allAppointments.length === 0 && <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader /></TableCell></TableRow>}
+                                    {isLoadingExpired && expiredRenewals.length === 0 && <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                                     {expiredRenewals.map((renewal) => <RenewalRow key={renewal.id} renewal={renewal} />)}
-                                     {expiredRenewals.length === 0 && !isLoading && (
+                                     {!isLoadingExpired && expiredRenewals.length === 0 && (
                                         <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Nenhuma renovação vencida encontrada.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
                         </div>
+                        {hasMoreExpired && (
+                            <div className="mt-4 flex justify-center">
+                                <Button onClick={loadMoreExpired} disabled={isLoadingExpired}>
+                                    {isLoadingExpired ? 'Carregando...' : 'Carregar Mais'}
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-
-                 {hasMore && (
-                    <div className="mt-4 flex justify-center">
-                        <Button onClick={loadMore} disabled={isLoading}>
-                            {isLoading ? 'Carregando...' : 'Carregar Mais Atendimentos'}
-                        </Button>
-                    </div>
-                )}
             </div>
         </div>
     );

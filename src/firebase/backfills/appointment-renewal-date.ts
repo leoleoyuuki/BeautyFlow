@@ -4,10 +4,12 @@
 import {
   collection,
   query,
-  where,
   getDocs,
   writeBatch,
   Firestore,
+  limit,
+  startAfter,
+  DocumentSnapshot,
 } from 'firebase/firestore';
 import { addMonths } from 'date-fns';
 import type { Appointment } from '@/lib/types';
@@ -15,68 +17,81 @@ import type { Appointment } from '@/lib/types';
 /**
  * Finds all appointments without a 'renewalDate' and updates them in batches.
  * This is intended as a one-time migration for existing data.
+ * It fetches all documents and processes them client-side because Firestore
+ * does not efficiently support querying for non-existent fields.
  * @param db The Firestore instance.
  * @param professionalId The UID of the professional.
  */
 export async function backfillRenewalDates(db: Firestore, professionalId: string): Promise<void> {
   console.log(`Starting renewalDate backfill for user: ${professionalId}`);
   const appointmentsRef = collection(db, 'professionals', professionalId, 'appointments');
+  let lastDoc: DocumentSnapshot | null = null;
+  let hasMore = true;
+  let totalProcessed = 0;
   
-  // Query for documents where 'renewalDate' does NOT exist.
-  // Firestore doesn't have a 'does not exist' operator, so we query for documents
-  // where renewalDate is null, as unset fields behave like null in queries.
-  // A more robust way if needed would be to fetch all and filter client-side, but this is often sufficient.
-  const q = query(appointmentsRef, where('renewalDate', '==', null));
-
-  try {
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-      console.log(`No appointments to backfill for user: ${professionalId}`);
-      return;
+  while (hasMore) {
+    let q = query(appointmentsRef, limit(200)); // Process in chunks of 200
+    if (lastDoc) {
+      q = query(appointmentsRef, startAfter(lastDoc), limit(200));
     }
 
-    console.log(`Found ${snapshot.docs.length} appointments to backfill.`);
-
-    let batch = writeBatch(db);
-    let count = 0;
-
-    for (const doc of snapshot.docs) {
-      const appointment = doc.data() as Appointment;
-
-      // Double-check just in case the query isn't perfect or data is weird
-      if (appointment.renewalDate) {
+    try {
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        hasMore = false;
         continue;
       }
+
+      lastDoc = snapshot.docs[snapshot.docs.length - 1];
       
-      const appointmentDate = new Date(appointment.appointmentDate);
-      const validity = appointment.validityPeriodMonths || 0;
-      
-      // Only calculate if there's a validity period
-      if (validity > 0) {
-        const renewalDate = addMonths(appointmentDate, validity);
-        batch.update(doc.ref, { renewalDate: renewalDate.toISOString() });
-        count++;
-      } else {
-         // If validity is 0, maybe set it to appointment date or a far-future date
-         // so it doesn't show up in renewals. Let's use the original date.
-         batch.update(doc.ref, { renewalDate: appointment.appointmentDate });
+      let batch = writeBatch(db);
+      let batchCount = 0;
+
+      for (const doc of snapshot.docs) {
+        const appointment = doc.data() as Appointment;
+
+        // Check if renewalDate already exists to avoid redundant writes.
+        if (!appointment.renewalDate) {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          const validity = appointment.validityPeriodMonths || 0;
+          
+          if (validity > 0) {
+            const renewalDate = addMonths(appointmentDate, validity);
+            batch.update(doc.ref, { renewalDate: renewalDate.toISOString() });
+          } else {
+            // If validity is 0, set renewalDate to the original date to prevent re-processing.
+            batch.update(doc.ref, { renewalDate: appointment.appointmentDate });
+          }
+          batchCount++;
+          totalProcessed++;
+        }
+
+        // Commit batch when it's full.
+        if (batchCount === 499) {
+          await batch.commit();
+          batch = writeBatch(db);
+          batchCount = 0;
+        }
       }
 
-      // Firestore batches have a limit of 500 operations.
-      if (count % 499 === 0) {
+      // Commit any remaining operations in the last batch for this chunk.
+      if (batchCount > 0) {
         await batch.commit();
-        batch = writeBatch(db);
       }
+
+      if (snapshot.docs.length < 200) {
+        hasMore = false;
+      }
+
+    } catch (error) {
+      console.error(`Error during renewalDate backfill for user ${professionalId}:`, error);
+      hasMore = false; // Stop on error to prevent infinite loops
     }
+  }
 
-    // Commit any remaining operations in the last batch.
-    if (count > 0) {
-      await batch.commit();
-    }
-
-    console.log(`Successfully backfilled renewalDate for ${count} appointments for user: ${professionalId}`);
-
-  } catch (error) {
-    console.error(`Error during renewalDate backfill for user ${professionalId}:`, error);
+  if (totalProcessed > 0) {
+    console.log(`Successfully checked and backfilled renewalDate for ${totalProcessed} appointments for user: ${professionalId}`);
+  } else {
+    console.log(`No appointments needed backfilling for user: ${professionalId}`);
   }
 }
