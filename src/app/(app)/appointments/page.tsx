@@ -44,7 +44,7 @@ import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { handleAddAppointmentSummary, handleDeleteAppointmentSummary, handleUpdateAppointmentSummary } from '@/firebase/summary-updates';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -110,13 +110,17 @@ export default function AppointmentsPage() {
     if (!firestore || !user || !newAppointment.clientId || !newAppointment.serviceId || !newAppointment.appointmentDate) return;
     const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
     const selectedService = services?.find(s => s.id === newAppointment.serviceId);
+    
+    const validity = Number(newAppointment.validityPeriodMonths) || 0;
+    const renewalDate = addMonths(newAppointment.appointmentDate, validity);
 
     const appointmentToAdd: Omit<Appointment, 'id'> = {
       clientId: newAppointment.clientId,
       serviceId: newAppointment.serviceId,
       professionalId: user!.uid,
       appointmentDate: newAppointment.appointmentDate.toISOString(),
-      validityPeriodMonths: Number(newAppointment.validityPeriodMonths) || 0,
+      renewalDate: renewalDate.toISOString(),
+      validityPeriodMonths: validity,
       price: newAppointment.price || selectedService?.price || 0,
     };
     const docRef = await addDocumentNonBlocking(appointmentsCollection, appointmentToAdd);
@@ -175,14 +179,15 @@ export default function AppointmentsPage() {
 
     const selectedService = services?.find(s => s.id === editingAppointment.serviceId);
     
-    const appointmentDate = typeof editingAppointment.appointmentDate === 'string' 
-        ? editingAppointment.appointmentDate 
-        : (editingAppointment.appointmentDate as Date)?.toISOString();
+    const appointmentDate = new Date(editingAppointment.appointmentDate);
+    const validity = Number(editingAppointment.validityPeriodMonths) || 0;
+    const renewalDate = addMonths(appointmentDate, validity);
 
     const appointmentToUpdate = {
       ...editingAppointment,
-      appointmentDate,
-      validityPeriodMonths: Number(editingAppointment.validityPeriodMonths) || 0,
+      appointmentDate: appointmentDate.toISOString(),
+      renewalDate: renewalDate.toISOString(),
+      validityPeriodMonths: validity,
       price: editingAppointment.price || selectedService?.price || 0,
     };
     

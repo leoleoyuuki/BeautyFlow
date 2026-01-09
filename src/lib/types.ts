@@ -31,6 +31,7 @@ export type Appointment = {
     serviceId: string;
     professionalId: string;
     appointmentDate: string; // ISO string
+    renewalDate?: string; // ISO string
     notes?: string;
     validityPeriodMonths: number;
     price?: number;
