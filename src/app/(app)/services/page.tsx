@@ -55,9 +55,8 @@ export default function ServicesPage() {
   const [deletingService, setDeletingService] = useState<Service | null>(null);
 
   const servicesQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    const servicesCollection = collection(firestore, 'professionals', user.uid, 'services');
-    return query(servicesCollection, orderBy('createdAt', 'desc'));
+    if (!user || !firestore) return null;
+    return query(collection(firestore, 'professionals', user.uid, 'services'), orderBy('createdAt', 'desc'));
   }, [firestore, user]);
 
   const { data: services, isLoading, loadMore, hasMore } = useCollection<Service>(servicesQuery, PAGE_SIZE);
@@ -339,5 +338,3 @@ export default function ServicesPage() {
     </div>
   );
 }
-
-    
