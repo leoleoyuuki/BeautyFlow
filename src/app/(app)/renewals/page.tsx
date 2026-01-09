@@ -21,7 +21,7 @@ import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, startAfter, getDocs, DocumentSnapshot, doc } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 // This custom hook handles the logic for fetching paginated appointments.
 // It fetches raw appointments, and the filtering logic is handled by the component.
@@ -34,7 +34,7 @@ function usePaginatedAppointments(
     const [hasMore, setHasMore] = useState(true);
 
     const fetchAppointments = useCallback(async (loadMore = false) => {
-        if (!baseQuery || !hasMore && loadMore) {
+        if (!baseQuery || (!hasMore && loadMore)) {
             setIsLoading(false);
             return;
         }
@@ -68,6 +68,9 @@ function usePaginatedAppointments(
     // Initial fetch
     useEffect(() => {
         if (baseQuery) {
+            setAppointments([]); // Reset on new query
+            setLastDoc(null);
+            setHasMore(true);
             fetchAppointments(false);
         }
     }, [baseQuery]);
@@ -159,7 +162,6 @@ export default function RenewalsPage() {
     const { firestore, user } = useFirebase();
     
     // Base query to fetch all appointments, ordered by date.
-    // This is more robust as it doesn't rely on `renewalDate` which may not exist on old docs.
     const baseAppointmentsQuery = useMemoFirebase(() => {
         if (!user) return null;
         const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
@@ -175,24 +177,22 @@ export default function RenewalsPage() {
 
     const { upcomingRenewals, expiredRenewals } = useMemo(() => {
         const now = new Date();
-        const upcomingEndDate = addDays(now, 15);
-        const expiredStartDate = subDays(now, 15);
-
         const upcoming: Appointment[] = [];
         const expired: Appointment[] = [];
 
         allAppointments.forEach(app => {
             const renewalDate = app.renewalDate ? new Date(app.renewalDate) : addMonths(new Date(app.appointmentDate), app.validityPeriodMonths);
             
-            // Check for upcoming renewals
-            if (isAfter(renewalDate, now) && isBefore(renewalDate, upcomingEndDate)) {
+            if (isAfter(renewalDate, now)) {
                 upcoming.push(app);
-            }
-            // Check for recently expired renewals
-            else if (isAfter(renewalDate, expiredStartDate) && isBefore(renewalDate, now)) {
+            } else {
                 expired.push(app);
             }
         });
+        
+        // Sort upcoming from soonest to latest
+        upcoming.sort((a, b) => new Date(a.renewalDate!).getTime() - new Date(b.renewalDate!).getTime());
+        // Expired are already sorted by appointmentDate desc, which is fine.
 
         return { upcomingRenewals: upcoming, expiredRenewals: expired };
     }, [allAppointments]);
@@ -202,13 +202,13 @@ export default function RenewalsPage() {
         <div className="flex-1 space-y-6 p-2 md:p-6 pt-6">
             <div className="px-2">
                 <h1 className="text-3xl font-bold tracking-tight font-headline">Renovações</h1>
-                <p className="text-muted-foreground">Acompanhe os vencimentos (próximos 15 dias e vencidos nos últimos 15 dias) e envie lembretes.</p>
+                <p className="text-muted-foreground">Acompanhe os vencimentos e envie lembretes para suas clientes.</p>
             </div>
 
             <div className="space-y-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Próximas Renovações (15 dias)</CardTitle>
+                        <CardTitle>Próximas Renovações</CardTitle>
                         <CardDescription>Procedimentos que estão perto de vencer.</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -228,7 +228,7 @@ export default function RenewalsPage() {
                                     {isLoading && allAppointments.length === 0 && <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                                     {upcomingRenewals.map((renewal) => <RenewalRow key={renewal.id} renewal={renewal} />)}
                                      {upcomingRenewals.length === 0 && !isLoading && (
-                                        <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Nenhuma renovação para os próximos 15 dias.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Nenhuma renovação futura encontrada.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
@@ -238,7 +238,7 @@ export default function RenewalsPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Renovações Vencidas (Últimos 15 dias)</CardTitle>
+                        <CardTitle>Renovações Vencidas</CardTitle>
                         <CardDescription>Clientes que já passaram da data de renovação.</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -258,7 +258,7 @@ export default function RenewalsPage() {
                                     {isLoading && allAppointments.length === 0 && <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader /></TableCell></TableRow>}
                                     {expiredRenewals.map((renewal) => <RenewalRow key={renewal.id} renewal={renewal} />)}
                                      {expiredRenewals.length === 0 && !isLoading && (
-                                        <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Nenhuma renovação vencida nos últimos 15 dias.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Nenhuma renovação vencida encontrada.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
