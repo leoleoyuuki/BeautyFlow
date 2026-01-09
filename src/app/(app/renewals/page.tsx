@@ -22,7 +22,7 @@ import { collection, query, orderBy, limit, startAfter, getDocs, DocumentSnapsho
 import { Loader } from '@/components/ui/loader';
 import { backfillRenewalDates } from '@/firebase/backfills/appointment-renewal-date';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 5;
 
 function usePaginatedRenewals(baseQuery: ReturnType<typeof query> | null, enabled: boolean) {
     const [renewals, setRenewals] = useState<Appointment[]>([]);
@@ -64,13 +64,15 @@ function usePaginatedRenewals(baseQuery: ReturnType<typeof query> | null, enable
     }, [baseQuery, lastDoc, hasMore, enabled]);
 
     useEffect(() => {
-        setRenewals([]);
-        setLastDoc(null);
-        setHasMore(true);
-        fetchRenewals(false);
-    }, [baseQuery]);
+        if (enabled) {
+            setRenewals([]);
+            setLastDoc(null);
+            setHasMore(true);
+            fetchRenewals(false);
+        }
+    }, [baseQuery, enabled]);
 
-    return { renewals, isLoading, hasMore, loadMore: () => fetchRenewals(true) };
+    return { renewals, isLoading, hasMore, loadMore: () => fetchRenewals(true), setRenewals };
 }
 
 const RenewalRow = React.memo(({ renewal }: { renewal: Appointment }) => {
