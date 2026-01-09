@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -22,7 +21,7 @@ import { collection, query, orderBy, limit, startAfter, getDocs, DocumentSnapsho
 import { Loader } from '@/components/ui/loader';
 import { backfillRenewalDates } from '@/firebase/backfills/appointment-renewal-date';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 5;
 
 function usePaginatedRenewals(baseQuery: ReturnType<typeof query> | null, enabled: boolean) {
     const [renewals, setRenewals] = useState<Appointment[]>([]);
@@ -61,7 +60,7 @@ function usePaginatedRenewals(baseQuery: ReturnType<typeof query> | null, enable
         } finally {
             setIsLoading(false);
         }
-    }, [baseQuery, lastDoc, hasMore, enabled, PAGE_SIZE]);
+    }, [baseQuery, lastDoc, hasMore, enabled]);
 
     useEffect(() => {
         if (enabled) {
