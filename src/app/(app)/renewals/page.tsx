@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -17,55 +17,60 @@ import { formatDate } from '@/lib/utils';
 import { addDays, subDays, differenceInDays } from 'date-fns';
 import { MessageSquare } from 'lucide-react';
 import type { Client, Service, Appointment } from '@/lib/types';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit, startAfter, getDocs, DocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, orderBy, limit, startAfter, getDocs, DocumentSnapshot, DocumentData, doc } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
 
 const PAGE_SIZE = 10;
 
 // This custom hook handles the logic for fetching paginated renewals.
 function usePaginatedRenewals(
-    baseQuery: (direction: 'asc' | 'desc', startDate: Date, endDate?: Date) => ReturnType<typeof query> | null,
-    direction: 'asc' | 'desc',
-    initialStartDate: Date,
-    initialEndDate?: Date
+    baseQuery: ReturnType<typeof query> | null,
+    loadInitial: boolean
 ) {
     const [renewals, setRenewals] = useState<Appointment[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(loadInitial);
     const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
     const [hasMore, setHasMore] = useState(true);
 
     const fetchRenewals = useCallback(async (loadMore = false) => {
-        const q = baseQuery(direction, initialStartDate, initialEndDate);
-        if (!q) {
+        if (!baseQuery) {
             setIsLoading(false);
             return;
         }
         
         setIsLoading(true);
 
-        let finalQuery = query(q, limit(PAGE_SIZE));
+        let finalQuery = query(baseQuery, limit(PAGE_SIZE));
         if (loadMore && lastDoc) {
-            finalQuery = query(q, startAfter(lastDoc), limit(PAGE_SIZE));
+            finalQuery = query(baseQuery, startAfter(lastDoc), limit(PAGE_SIZE));
         }
 
-        const snapshot = await getDocs(finalQuery);
-        const newRenewals = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Appointment));
+        try {
+            const snapshot = await getDocs(finalQuery);
+            const newRenewals = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Appointment));
 
-        setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
-        setHasMore(newRenewals.length === PAGE_SIZE);
-        setRenewals(prev => {
-            const existingIds = new Set(prev.map(r => r.id));
-            const uniqueNewRenewals = newRenewals.filter(r => !existingIds.has(r.id));
-            return loadMore ? [...prev, ...uniqueNewRenewals] : newRenewals;
-        });
-        setIsLoading(false);
-    }, [baseQuery, direction, initialStartDate, initialEndDate, lastDoc]);
+            setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
+            setHasMore(newRenewals.length === PAGE_SIZE);
+            setRenewals(prev => {
+                const existingIds = new Set(prev.map(r => r.id));
+                const uniqueNewRenewals = newRenewals.filter(r => !existingIds.has(r.id));
+                return loadMore ? [...prev, ...uniqueNewRenewals] : newRenewals;
+            });
+        } catch (error) {
+            console.error("Error fetching renewals:", error);
+        } finally {
+            setIsLoading(false);
+        }
+
+    }, [baseQuery, lastDoc]);
 
     // Initial fetch
     React.useEffect(() => {
-        fetchRenewals(false);
-    }, [baseQuery, direction, initialStartDate, initialEndDate]);
+        if(loadInitial) {
+            fetchRenewals(false);
+        }
+    }, [loadInitial, fetchRenewals]);
 
     return { renewals, isLoading, hasMore, loadMore: () => fetchRenewals(true) };
 }
@@ -75,12 +80,12 @@ const RenewalRow = React.memo(({ renewal }: { renewal: Appointment }) => {
     const { firestore, user } = useFirebase();
 
     const clientDoc = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !renewal.clientId) return null;
         return doc(firestore, 'professionals', user.uid, 'clients', renewal.clientId);
     }, [firestore, user, renewal.clientId]);
 
     const serviceDoc = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !renewal.serviceId) return null;
         return doc(firestore, 'professionals', user.uid, 'services', renewal.serviceId);
     }, [firestore, user, renewal.serviceId]);
 
@@ -141,18 +146,27 @@ RenewalRow.displayName = 'RenewalRow';
 export default function RenewalsPage() {
     const { firestore, user } = useFirebase();
     const now = new Date();
-    const upcomingEndDate = addDays(now, 15);
-    const expiredStartDate = subDays(now, 15);
-
-    const baseQueryBuilder = useCallback((direction: 'asc' | 'desc', startDate: Date, endDate?: Date) => {
+    
+    const upcomingQuery = useMemoFirebase(() => {
         if (!user) return null;
+        const upcomingEndDate = addDays(now, 15);
         const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
-        
-        let q = query(appointmentsCollection, orderBy('renewalDate', direction));
-        if (startDate) q = query(q, where('renewalDate', '>=', startDate.toISOString()));
-        if (endDate) q = query(q, where('renewalDate', '<=', endDate.toISOString()));
-        
-        return q;
+        return query(appointmentsCollection, 
+            where('renewalDate', '>=', now.toISOString()),
+            where('renewalDate', '<=', upcomingEndDate.toISOString()),
+            orderBy('renewalDate', 'asc')
+        );
+    }, [user, firestore]);
+
+    const expiredQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        const expiredStartDate = subDays(now, 15);
+        const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
+        return query(appointmentsCollection, 
+            where('renewalDate', '>=', expiredStartDate.toISOString()),
+            where('renewalDate', '<', now.toISOString()),
+            orderBy('renewalDate', 'desc')
+        );
     }, [user, firestore]);
     
     const { 
@@ -160,14 +174,14 @@ export default function RenewalsPage() {
         isLoading: isLoadingUpcoming, 
         hasMore: hasMoreUpcoming, 
         loadMore: loadMoreUpcoming 
-    } = usePaginatedRenewals(baseQueryBuilder, 'asc', now, upcomingEndDate);
+    } = usePaginatedRenewals(upcomingQuery, !!user);
     
     const { 
         renewals: expiredRenewals, 
         isLoading: isLoadingExpired, 
         hasMore: hasMoreExpired, 
         loadMore: loadMoreExpired 
-    } = usePaginatedRenewals(baseQueryBuilder, 'desc', expiredStartDate, now);
+    } = usePaginatedRenewals(expiredQuery, !!user);
 
 
     return (
