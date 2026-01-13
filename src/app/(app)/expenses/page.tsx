@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlusCircle } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, doc, writeBatch, query, orderBy, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, writeBatch, query, orderBy, getDoc, where, getDocs } from 'firebase/firestore';
 import type { MaterialPurchase, Material, MaterialCategory } from '@/lib/types';
 import { handleAddPurchaseSummary } from '@/firebase/summary-updates';
 import {
@@ -67,6 +67,40 @@ export default function ExpensesPage() {
   
   const { data: materials, isLoading: isLoadingMaterials, setData: setMaterials } = useCollection<Material>(materialsCollection);
   const { data: categories, isLoading: isLoadingCategories, setData: setCategories } = useCollection<MaterialCategory>(categoriesCollection);
+
+  // Effect to ensure "Contas" category exists
+  useEffect(() => {
+    if (!user || !categoriesCollection || isLoadingCategories) return;
+
+    const ensureContasCategory = async () => {
+      if (categories && categories.some(c => c.name.toLowerCase() === 'contas')) {
+        // Already exists, do nothing.
+        return;
+      }
+
+      // Check one more time in the database just in case of race conditions
+      const q = query(categoriesCollection, where("name", "==", "Contas"));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        // Does not exist, let's create it.
+        try {
+          const newCategoryRef = await addDoc(categoriesCollection, {
+            name: "Contas",
+            professionalId: user.uid
+          });
+          const newCategory = { id: newCategoryRef.id, name: "Contas", professionalId: user.uid };
+          setCategories(prev => [newCategory, ...(prev || [])]);
+          console.log("Categoria 'Contas' criada com sucesso.");
+        } catch(e) {
+          console.error("Erro ao criar a categoria 'Contas': ", e);
+        }
+      }
+    };
+
+    ensureContasCategory();
+  }, [user, categoriesCollection, categories, isLoadingCategories, setCategories]);
+
 
   const allPurchasesQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -452,5 +486,7 @@ export default function ExpensesPage() {
     </div>
   );
 }
+
+    
 
     
