@@ -59,7 +59,7 @@ export default function ClientsPage() {
     return query(clientsCollection, orderBy('createdAt', 'desc'));
   }, [firestore, user]);
 
-  const { data: clients, isLoading, loadMore, hasMore } = useCollection<Client>(clientsQuery, PAGE_SIZE);
+  const { data: clients, isLoading, loadMore, hasMore, setData: setClients } = useCollection<Client>(clientsQuery, PAGE_SIZE);
 
   const handleAddClient = async () => {
     if (!firestore || !user || !newClient.name) return;
@@ -72,7 +72,9 @@ export default function ClientsPage() {
     };
     const docRef = await addDocumentNonBlocking(clientsCollection, clientToAdd);
     if (docRef) {
-        handleAddClientSummary(firestore, user.uid, { ...clientToAdd, id: docRef.id });
+        const newClientDoc = { ...clientToAdd, id: docRef.id };
+        setClients(prevClients => [newClientDoc, ...(prevClients || [])]);
+        handleAddClientSummary(firestore, user.uid, newClientDoc);
     }
     setNewClient({ name: '', phoneNumber: '' });
     setAddDialogOpen(false);
