@@ -68,40 +68,6 @@ export default function ExpensesPage() {
   const { data: materials, isLoading: isLoadingMaterials, setData: setMaterials } = useCollection<Material>(materialsCollection);
   const { data: categories, isLoading: isLoadingCategories, setData: setCategories } = useCollection<MaterialCategory>(categoriesCollection);
 
-  // Effect to ensure "Contas" category exists
-  useEffect(() => {
-    if (!user || !categoriesCollection || isLoadingCategories) return;
-
-    const ensureContasCategory = async () => {
-      if (categories && categories.some(c => c.name.toLowerCase() === 'contas')) {
-        // Already exists, do nothing.
-        return;
-      }
-
-      // Check one more time in the database just in case of race conditions
-      const q = query(categoriesCollection, where("name", "==", "Contas"));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        // Does not exist, let's create it.
-        try {
-          const newCategoryRef = await addDoc(categoriesCollection, {
-            name: "Contas",
-            professionalId: user.uid
-          });
-          const newCategory = { id: newCategoryRef.id, name: "Contas", professionalId: user.uid };
-          setCategories(prev => [newCategory, ...(prev || [])]);
-          console.log("Categoria 'Contas' criada com sucesso.");
-        } catch(e) {
-          console.error("Erro ao criar a categoria 'Contas': ", e);
-        }
-      }
-    };
-
-    ensureContasCategory();
-  }, [user, categoriesCollection, categories, isLoadingCategories, setCategories]);
-
-
   const allPurchasesQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(

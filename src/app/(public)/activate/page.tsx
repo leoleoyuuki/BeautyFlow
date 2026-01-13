@@ -37,6 +37,8 @@ export default function ActivatePage() {
         const tokenRef = doc(firestore, 'activationTokens', token);
         const professionalRef = doc(firestore, 'professionals', user.uid);
         const summaryRef = doc(firestore, 'professionals', user.uid, 'summary', 'main');
+        const categoriesRef = collection(firestore, 'professionals', user.uid, 'materialCategories');
+        const contasCategoryRef = doc(categoriesRef);
         
         try {
             const tokenSnap = await getDoc(tokenRef);
@@ -83,6 +85,10 @@ export default function ActivatePage() {
 
             // 3. Create initial summary document
             batch.set(summaryRef, initialSummary);
+
+            // 4. Create the default "Contas" category
+            batch.set(contasCategoryRef, { name: "Contas", professionalId: user.uid });
+
 
             // Commit the batch
             await batch.commit();
