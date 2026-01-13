@@ -51,6 +51,11 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Loader } from '@/components/ui/loader';
 
+type EditableAppointment = Omit<Appointment, 'validityPeriodDays'> & {
+    validityPeriodDays: number | string;
+};
+
+
 const PAGE_SIZE = 15;
 
 export default function AppointmentsPage() {
@@ -76,13 +81,13 @@ export default function AppointmentsPage() {
     clientId: string;
     serviceId: string;
     appointmentDate: Date | undefined;
-    validityPeriodDays: number;
+    validityPeriodDays: number | string;
     price: number;
   }>(initialNewAppointmentState);
 
   const [newClient, setNewClient] = useState({ name: '', phoneNumber: '' });
   const [newService, setNewService] = useState({ name: '', description: '', price: 0 });
-  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [editingAppointment, setEditingAppointment] = useState<EditableAppointment | null>(null);
   const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null);
 
 
@@ -189,7 +194,7 @@ export default function AppointmentsPage() {
     const validity = Number(editingAppointment.validityPeriodDays) || 0;
     const renewalDate = addDays(appointmentDate, validity);
 
-    const appointmentToUpdate = {
+    const appointmentToUpdate: Appointment = {
       ...editingAppointment,
       appointmentDate: appointmentDate.toISOString(),
       renewalDate: renewalDate.toISOString(),
@@ -227,8 +232,8 @@ export default function AppointmentsPage() {
   const openEditDialog = (appointment: Appointment) => {
     setEditingAppointment({
         ...appointment,
-        appointmentDate: new Date(appointment.appointmentDate)
-    } as any);
+        appointmentDate: new Date(appointment.appointmentDate),
+    });
     setEditDialogOpen(true);
   }
   
@@ -487,7 +492,7 @@ export default function AppointmentsPage() {
                         id="validity"
                         type="number"
                         value={newAppointment.validityPeriodDays}
-                        onChange={(e) => setNewAppointment({ ...newAppointment, validityPeriodDays: Number(e.target.value) })}
+                        onChange={(e) => setNewAppointment({ ...newAppointment, validityPeriodDays: e.target.value === '' ? '' : Number(e.target.value) })}
                         className="w-full"
                         placeholder="Ex: 30"
                     />
@@ -593,7 +598,7 @@ export default function AppointmentsPage() {
                         id="edit-validity"
                         type="number"
                         value={editingAppointment.validityPeriodDays}
-                        onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodDays: Number(e.target.value) })}
+                        onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodDays: e.target.value === '' ? '' : Number(e.target.value) })}
                         className="w-full"
                     />
                     <p className="text-xs text-muted-foreground">
