@@ -102,7 +102,7 @@ export default function AppointmentsPage() {
     return collection(firestore, 'professionals', user.uid, 'services');
   }, [firestore, user]);
 
-  const { data: appointments, isLoading: isLoadingAppointments, loadMore, hasMore } = useCollection<Appointment>(appointmentsQuery, PAGE_SIZE);
+  const { data: appointments, isLoading: isLoadingAppointments, loadMore, hasMore, setData: setAppointments } = useCollection<Appointment>(appointmentsQuery, PAGE_SIZE);
   const { data: clients, isLoading: isLoadingClients, setData: setClients } = useCollection<Client>(clientsCollection);
   const { data: services, isLoading: isLoadingServices, setData: setServices } = useCollection<Service>(servicesCollection);
 
@@ -125,7 +125,9 @@ export default function AppointmentsPage() {
     };
     const docRef = await addDocumentNonBlocking(appointmentsCollection, appointmentToAdd);
     if(docRef) {
-        handleAddAppointmentSummary(firestore, user.uid, { ...appointmentToAdd, id: docRef.id });
+        const newAppointmentDoc = { ...appointmentToAdd, id: docRef.id };
+        setAppointments(prev => [newAppointmentDoc, ...(prev || [])]);
+        handleAddAppointmentSummary(firestore, user.uid, newAppointmentDoc);
     }
     setNewAppointment(initialNewAppointmentState);
     setAddDialogOpen(false);
@@ -198,6 +200,7 @@ export default function AppointmentsPage() {
     const { id, ...appointmentData } = appointmentToUpdate;
     
     updateDocumentNonBlocking(appointmentDocRef, appointmentData);
+    setAppointments(prev => prev ? prev.map(a => a.id === id ? appointmentToUpdate : a) : null);
     handleUpdateAppointmentSummary(firestore, user.uid, oldAppointment, appointmentToUpdate);
 
     setEditingAppointment(null);
@@ -216,6 +219,7 @@ export default function AppointmentsPage() {
     }
     
     deleteDocumentNonBlocking(appointmentDocRef);
+    setAppointments(prev => prev ? prev.filter(a => a.id !== deletingAppointment.id) : null);
     setDeletingAppointment(null);
   };
 
@@ -742,3 +746,4 @@ export default function AppointmentsPage() {
     </div>
   );
 }
+
