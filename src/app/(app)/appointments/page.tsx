@@ -103,8 +103,8 @@ export default function AppointmentsPage() {
   }, [firestore, user]);
 
   const { data: appointments, isLoading: isLoadingAppointments, loadMore, hasMore } = useCollection<Appointment>(appointmentsQuery, PAGE_SIZE);
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
-  const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesCollection);
+  const { data: clients, isLoading: isLoadingClients, setData: setClients } = useCollection<Client>(clientsCollection);
+  const { data: services, isLoading: isLoadingServices, setData: setServices } = useCollection<Service>(servicesCollection);
 
   const handleAddAppointment = async () => {
     if (!firestore || !user || !newAppointment.clientId || !newAppointment.serviceId || !newAppointment.appointmentDate) return;
@@ -131,38 +131,42 @@ export default function AppointmentsPage() {
     setAddDialogOpen(false);
   };
   
-  const handleAddClient = () => {
-    if (!clientsCollection || !newClient.name) return;
+  const handleAddClient = async () => {
+    if (!clientsCollection || !newClient.name || !user) return;
     const clientToAdd = {
       name: newClient.name,
       phoneNumber: newClient.phoneNumber,
-      professionalId: user!.uid,
+      professionalId: user.uid,
       createdAt: new Date().toISOString(),
     };
-    addDocumentNonBlocking(clientsCollection, clientToAdd)
-      .then((docRef) => {
-        if(docRef) {
-            setNewAppointment(prev => ({...prev, clientId: docRef.id}));
-        }
-      });
+    const docRef = await addDocumentNonBlocking(clientsCollection, clientToAdd);
+    if (docRef) {
+        const newClientDoc = { ...clientToAdd, id: docRef.id };
+        setClients(prevClients => [newClientDoc, ...(prevClients || [])]);
+        setNewAppointment(prev => ({...prev, clientId: docRef.id}));
+    }
     setNewClient({ name: '', phoneNumber: '' });
     setAddClientDialogOpen(false);
   };
 
-  const handleAddService = () => {
-    if (!servicesCollection || !newService.name) return;
+  const handleAddService = async () => {
+    if (!servicesCollection || !newService.name || !user) return;
     const serviceToAdd = {
       ...newService,
       price: newService.price || 0,
-      professionalId: user!.uid,
+      professionalId: user.uid,
       createdAt: new Date().toISOString(),
     };
-    addDocumentNonBlocking(servicesCollection, serviceToAdd)
-      .then((docRef) => {
-        if(docRef) {
-            setNewAppointment(prev => ({...prev, serviceId: docRef.id}));
-        }
-      });
+    const docRef = await addDocumentNonBlocking(servicesCollection, serviceToAdd);
+    if (docRef) {
+        const newServiceDoc = { ...serviceToAdd, id: docRef.id };
+        setServices(prevServices => [newServiceDoc, ...(prevServices || [])]);
+        setNewAppointment(prev => ({
+            ...prev,
+            serviceId: docRef.id,
+            price: newServiceDoc.price
+        }));
+    }
     setNewService({ name: '', description: '', price: 0 });
     setAddServiceDialogOpen(false);
   };
