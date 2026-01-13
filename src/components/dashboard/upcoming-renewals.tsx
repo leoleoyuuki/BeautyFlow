@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { addMonths, isAfter, differenceInDays, format } from 'date-fns';
+import { addDays, isAfter, differenceInDays, format } from 'date-fns';
 import type { Appointment, Client, Service } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare } from 'lucide-react';
@@ -20,14 +20,14 @@ export function UpcomingRenewals({ appointments, clients, services }: UpcomingRe
   const upcoming = useMemo(() => {
     if (!appointments) return [];
     const now = new Date();
-    const twoMonthsFromNow = addMonths(now, 2);
+    const twoMonthsFromNow = addDays(now, 60);
     return appointments
       .map(p => {
-        const renewalDate = addMonths(new Date(p.appointmentDate), p.validityPeriodMonths);
+        const renewalDate = addDays(new Date(p.appointmentDate), p.validityPeriodDays);
         const daysLeft = differenceInDays(renewalDate, now);
         return { ...p, renewalDate, daysLeft };
       })
-      .filter(p => isAfter(p.renewalDate, now) && isAfter(twoMonthsFromNow, p.renewalDate) && p.validityPeriodMonths > 0)
+      .filter(p => isAfter(p.renewalDate, now) && isAfter(twoMonthsFromNow, p.renewalDate) && p.validityPeriodDays > 0)
       .sort((a, b) => a.renewalDate.getTime() - b.renewalDate.getTime())
       .slice(0, 5);
   }, [appointments]);

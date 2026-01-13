@@ -33,7 +33,7 @@ export type Appointment = {
     appointmentDate: string; // ISO string
     renewalDate: string; // ISO string
     notes?: string;
-    validityPeriodMonths: number;
+    validityPeriodDays: number;
     price?: number;
 };
 

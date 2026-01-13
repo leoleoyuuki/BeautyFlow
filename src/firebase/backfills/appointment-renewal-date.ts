@@ -11,7 +11,7 @@ import {
   startAfter,
   DocumentSnapshot,
 } from 'firebase/firestore';
-import { addMonths } from 'date-fns';
+import { addDays } from 'date-fns';
 import type { Appointment } from '@/lib/types';
 
 /**
@@ -53,10 +53,10 @@ export async function backfillRenewalDates(db: Firestore, professionalId: string
         // Check if renewalDate already exists to avoid redundant writes.
         if (!appointment.renewalDate) {
           const appointmentDate = new Date(appointment.appointmentDate);
-          const validity = appointment.validityPeriodMonths || 0;
+          const validity = appointment.validityPeriodDays || 0;
           
           if (validity > 0) {
-            const renewalDate = addMonths(appointmentDate, validity);
+            const renewalDate = addDays(appointmentDate, validity);
             batch.update(doc.ref, { renewalDate: renewalDate.toISOString() });
           } else {
             // If validity is 0, set renewalDate to the original date to prevent re-processing.

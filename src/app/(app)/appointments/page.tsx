@@ -44,7 +44,7 @@ import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { handleAddAppointmentSummary, handleDeleteAppointmentSummary, handleUpdateAppointmentSummary } from '@/firebase/summary-updates';
-import { format, addMonths } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -68,7 +68,7 @@ export default function AppointmentsPage() {
     clientId: '',
     serviceId: '',
     appointmentDate: new Date(),
-    validityPeriodMonths: '1',
+    validityPeriodDays: 30,
     price: 0,
   };
 
@@ -76,7 +76,7 @@ export default function AppointmentsPage() {
     clientId: string;
     serviceId: string;
     appointmentDate: Date | undefined;
-    validityPeriodMonths: string;
+    validityPeriodDays: number;
     price: number;
   }>(initialNewAppointmentState);
 
@@ -111,8 +111,8 @@ export default function AppointmentsPage() {
     const appointmentsCollection = collection(firestore, 'professionals', user.uid, 'appointments');
     const selectedService = services?.find(s => s.id === newAppointment.serviceId);
     
-    const validity = Number(newAppointment.validityPeriodMonths) || 0;
-    const renewalDate = addMonths(newAppointment.appointmentDate, validity);
+    const validity = Number(newAppointment.validityPeriodDays) || 0;
+    const renewalDate = addDays(newAppointment.appointmentDate, validity);
 
     const appointmentToAdd: Omit<Appointment, 'id'> = {
       clientId: newAppointment.clientId,
@@ -120,7 +120,7 @@ export default function AppointmentsPage() {
       professionalId: user!.uid,
       appointmentDate: newAppointment.appointmentDate.toISOString(),
       renewalDate: renewalDate.toISOString(),
-      validityPeriodMonths: validity,
+      validityPeriodDays: validity,
       price: newAppointment.price || selectedService?.price || 0,
     };
     const docRef = await addDocumentNonBlocking(appointmentsCollection, appointmentToAdd);
@@ -186,14 +186,14 @@ export default function AppointmentsPage() {
     const selectedService = services?.find(s => s.id === editingAppointment.serviceId);
     
     const appointmentDate = new Date(editingAppointment.appointmentDate);
-    const validity = Number(editingAppointment.validityPeriodMonths) || 0;
-    const renewalDate = addMonths(appointmentDate, validity);
+    const validity = Number(editingAppointment.validityPeriodDays) || 0;
+    const renewalDate = addDays(appointmentDate, validity);
 
     const appointmentToUpdate = {
       ...editingAppointment,
       appointmentDate: appointmentDate.toISOString(),
       renewalDate: renewalDate.toISOString(),
-      validityPeriodMonths: validity,
+      validityPeriodDays: validity,
       price: editingAppointment.price || selectedService?.price || 0,
     };
     
@@ -486,13 +486,13 @@ export default function AppointmentsPage() {
                     <Input
                         id="validity"
                         type="number"
-                        value={newAppointment.validityPeriodMonths}
-                        onChange={(e) => setNewAppointment({ ...newAppointment, validityPeriodMonths: e.target.value })}
+                        value={newAppointment.validityPeriodDays}
+                        onChange={(e) => setNewAppointment({ ...newAppointment, validityPeriodDays: Number(e.target.value) })}
                         className="w-full"
-                        placeholder="Ex: 1"
+                        placeholder="Ex: 30"
                     />
                     <p className="text-xs text-muted-foreground">
-                        Tempo em meses para o sistema te lembrar de contatar a cliente para renovar.
+                        Tempo em dias para o sistema te lembrar de contatar a cliente para renovar.
                     </p>
                 </div>
               </div>
@@ -592,12 +592,12 @@ export default function AppointmentsPage() {
                     <Input
                         id="edit-validity"
                         type="number"
-                        value={editingAppointment.validityPeriodMonths}
-                        onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodMonths: e.target.value as any })}
+                        value={editingAppointment.validityPeriodDays}
+                        onChange={(e) => setEditingAppointment({ ...editingAppointment, validityPeriodDays: Number(e.target.value) })}
                         className="w-full"
                     />
                     <p className="text-xs text-muted-foreground">
-                        Tempo em meses para o sistema te lembrar de contatar a cliente para renovar.
+                        Tempo em dias para o sistema te lembrar de contatar a cliente para renovar.
                     </p>
                 </div>
               </div>
@@ -746,4 +746,3 @@ export default function AppointmentsPage() {
     </div>
   );
 }
-

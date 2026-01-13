@@ -144,9 +144,9 @@
           "type": "string",
           "description": "Notes related to the appointment."
         },
-        "validityPeriodMonths": {
+        "validityPeriodDays": {
           "type": "number",
-          "description": "The validity period in months for the service received during the appointment."
+          "description": "The validity period in days for the service received during the appointment."
         }
       },
       "required": [
@@ -155,7 +155,7 @@
         "serviceId",
         "professionalId",
         "appointmentDate",
-        "validityPeriodMonths",
+        "validityPeriodDays",
         "renewalDate"
       ]
     },
