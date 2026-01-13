@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -38,8 +37,7 @@ export default function ActivatePage() {
         const tokenRef = doc(firestore, 'activationTokens', token);
         const professionalRef = doc(firestore, 'professionals', user.uid);
         const summaryRef = doc(firestore, 'professionals', user.uid, 'summary', 'main');
-        const contasCategoryRef = doc(collection(firestore, 'professionals', user.uid, 'materialCategories'));
-
+        
         try {
             const tokenSnap = await getDoc(tokenRef);
             if (!tokenSnap.exists() || tokenSnap.data().isUsed) {
@@ -51,16 +49,11 @@ export default function ActivatePage() {
             // Calculate new expiration date
             const now = new Date();
             const expirationDate = addMonths(now, tokenData.durationMonths);
-
-            // Get existing professional data
-            const professionalSnap = await getDoc(professionalRef);
-            const professionalData = (professionalSnap.data() as Professional) || {};
             
-            const dataToSave = {
-                ...professionalData,
+            const newProfessionalProfile: Professional = {
                 id: user.uid,
-                name: professionalData.name || user.displayName || 'Novo Usuário',
-                contactNumber: professionalData.contactNumber || user.phoneNumber || '',
+                name: user.displayName || 'Novo Usuário',
+                contactNumber: user.phoneNumber || '',
                 activationExpiresAt: expirationDate.toISOString(),
             };
 
@@ -85,14 +78,11 @@ export default function ActivatePage() {
                 usedBy: user.uid,
             });
 
-            // 2. Create or update professional's profile
-            batch.set(professionalRef, dataToSave, { merge: true });
+            // 2. Create the new professional's profile
+            batch.set(professionalRef, newProfessionalProfile);
 
             // 3. Create initial summary document
             batch.set(summaryRef, initialSummary);
-
-            // 4. Create default "Contas" category
-            batch.set(contasCategoryRef, { name: "Contas", professionalId: user.uid });
 
             // Commit the batch
             await batch.commit();
