@@ -59,9 +59,9 @@ export default function ServicesPage() {
     return query(collection(firestore, 'professionals', user.uid, 'services'), orderBy('name', 'asc'));
   }, [firestore, user]);
 
-  const { data: services, isLoading, loadMore, hasMore } = useCollection<Service>(servicesQuery, PAGE_SIZE);
+  const { data: services, isLoading, loadMore, hasMore, setData: setServices } = useCollection<Service>(servicesQuery, PAGE_SIZE);
 
-  const handleAddService = () => {
+  const handleAddService = async () => {
     if (!firestore || !user || !newService.name) return;
     const servicesCollection = collection(firestore, 'professionals', user.uid, 'services');
     const serviceToAdd = {
@@ -70,7 +70,11 @@ export default function ServicesPage() {
       professionalId: user!.uid,
       createdAt: new Date().toISOString(),
     };
-    addDocumentNonBlocking(servicesCollection, serviceToAdd);
+    const docRef = await addDocumentNonBlocking(servicesCollection, serviceToAdd);
+    if(docRef) {
+      const newServiceDoc = { ...serviceToAdd, id: docRef.id };
+      setServices(prevServices => [newServiceDoc, ...(prevServices || [])]);
+    }
     setNewService({ name: '', description: '', price: 0 });
     setAddDialogOpen(false);
   };
