@@ -19,15 +19,13 @@ interface RevenueChartProps {
 export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueChartProps) {
   const chartData = useMemo(() => {
     const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
-    if (!summary) {
-        return months.map(m => ({ month: format(m, 'MMM', { locale: ptBR }), revenue: 0, expenses: 0, profit: 0 }));
-    }
-
+    
     return months.map(monthDate => {
       const monthKey = format(monthDate, 'yyyy-MM');
-      const revenue = summary.monthlyRevenue?.[monthKey] || 0;
-      const expenses = summary.monthlyExpenses?.[monthKey] || 0;
+      const revenue = summary?.monthlyRevenue?.[monthKey] || 0;
+      const expenses = summary?.monthlyExpenses?.[monthKey] || 0;
       const profit = revenue - expenses;
+      
       return {
         month: format(monthDate, 'MMM', { locale: ptBR }),
         revenue,
@@ -41,7 +39,7 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
       revenue: { label: 'Faturamento', color: 'hsl(var(--primary))' },
       expenses: { label: 'Custos', color: 'hsl(var(--destructive))' },
       profit: { label: 'Lucro Líquido', color: 'hsl(var(--chart-3))' },
-  }
+  };
 
   return (
     <Card className="h-full">
@@ -52,9 +50,19 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <XAxis dataKey="month" />
-                <YAxis tickFormatter={value => isRevenueVisible ? new Intl.NumberFormat('pt-BR', { notation: 'compact', style: 'currency', currency: 'BRL' }).format(value) : ''} />
+                <XAxis 
+                  dataKey="month" 
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                />
+                <YAxis 
+                  tickFormatter={value => isRevenueVisible ? new Intl.NumberFormat('pt-BR', { notation: 'compact', style: 'currency', currency: 'BRL' }).format(value) : '****'}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip
+                    cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
                     content={<ChartTooltipContent 
                         formatter={(value, name) => (
                             <div className="flex w-full items-center justify-between gap-4 min-w-[140px]">
@@ -70,6 +78,7 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
                 />
                 <Legend content={<ChartLegendContent />} />
                 
+                {/* Linha de Faturamento - Sempre visível */}
                 <Line 
                     type="monotone" 
                     dataKey="revenue" 
@@ -80,26 +89,27 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
                     activeDot={{ r: 6 }}
                 />
 
+                {/* Linhas de Custos e Lucro - Visíveis apenas no modo profit */}
                 {viewMode === 'profit' && (
-                    <>
-                        <Line 
-                            type="monotone" 
-                            dataKey="expenses" 
-                            name="expenses"
-                            stroke="var(--color-expenses)" 
-                            strokeWidth={2} 
-                            strokeDasharray="5 5"
-                            dot={{ r: 3, fill: "var(--color-expenses)" }}
-                        />
-                        <Line 
-                            type="monotone" 
-                            dataKey="profit" 
-                            name="profit"
-                            stroke="var(--color-profit)" 
-                            strokeWidth={3} 
-                            dot={{ r: 4, fill: "var(--color-profit)" }}
-                        />
-                    </>
+                    <Line 
+                        type="monotone" 
+                        dataKey="expenses" 
+                        name="expenses"
+                        stroke="var(--color-expenses)" 
+                        strokeWidth={2} 
+                        strokeDasharray="5 5"
+                        dot={{ r: 3, fill: "var(--color-expenses)" }}
+                    />
+                )}
+                {viewMode === 'profit' && (
+                    <Line 
+                        type="monotone" 
+                        dataKey="profit" 
+                        name="profit"
+                        stroke="var(--color-profit)" 
+                        strokeWidth={3} 
+                        dot={{ r: 4, fill: "var(--color-profit)" }}
+                    />
                 )}
             </LineChart>
           </ResponsiveContainer>
@@ -117,13 +127,12 @@ import { Bar, BarChart } from 'recharts';
 
 export function NewClientsChart({ summary }: NewClientsChartProps) {
     const chartData = useMemo(() => {
-       if (!summary?.newClientsPerMonth) return [];
         const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
         return months.map(monthDate => {
             const monthKey = format(monthDate, 'yyyy-MM');
             return {
                 month: format(monthDate, 'MMM', { locale: ptBR }),
-                newClients: summary.newClientsPerMonth[monthKey] || 0,
+                newClients: summary?.newClientsPerMonth?.[monthKey] || 0,
             };
         });
     }, [summary]);
@@ -137,8 +146,8 @@ export function NewClientsChart({ summary }: NewClientsChartProps) {
           <ChartContainer config={{}} className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <XAxis dataKey="month" />
-                <YAxis allowDecimals={false} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltipContent />} cursor={false} />
                 <Bar dataKey="newClients" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -246,8 +255,8 @@ export function ExpensesChart({ purchases }: ExpensesChartProps) {
           <ChartContainer config={{}} className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <XAxis dataKey="month" />
-                <YAxis tickFormatter={value => formatCurrency(Number(value))} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={value => formatCurrency(Number(value))} axisLine={false} tickLine={false} />
                 <Tooltip 
                     content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} 
                     cursor={false}
