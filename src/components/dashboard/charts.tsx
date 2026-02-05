@@ -36,8 +36,8 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
 
   const chartConfig = {
       revenue: { label: 'Faturamento', color: 'hsl(var(--chart-1))' },
-      expenses: { label: 'Despesas', color: 'hsl(var(--chart-2))' },
-      profit: { label: 'Lucro', color: 'hsl(var(--chart-3))' },
+      expenses: { label: 'Custos', color: 'hsl(var(--destructive))' },
+      profit: { label: 'Lucro', color: 'hsl(var(--primary))' },
   }
 
   return (
@@ -46,49 +46,49 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
         <CardTitle>{viewMode === 'revenue' ? 'Faturamento Mensal' : 'Análise de Lucro Real'}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[250px] w-full">
+        <ChartContainer config={chartConfig} className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 5, right: 20, left: isRevenueVisible ? -10 : 20, bottom: 5 }}>
-              <XAxis dataKey="month" />
-              <YAxis tickFormatter={value => isRevenueVisible ? formatCurrency(value) : ''} />
-              <Tooltip
-                content={<ChartTooltipContent 
-                    formatter={(value, name) => {
-                        if (!isRevenueVisible) return "Oculto";
-                        return formatCurrency(Number(value))
-                    }}
-                />}
-                />
-              <Legend content={<ChartLegendContent />} />
-              <Line 
-                type="monotone" 
-                dataKey="revenue" 
-                name="revenue" 
-                stroke={chartConfig.revenue.color} 
-                strokeWidth={2} 
-                dot={true}
-              />
-              {viewMode === 'profit' && (
-                <>
-                    <Line 
-                        type="monotone" 
-                        dataKey="expenses" 
-                        name="expenses" 
-                        stroke={chartConfig.expenses.color} 
-                        strokeWidth={2} 
-                        dot={true}
+            {viewMode === 'revenue' ? (
+                <LineChart data={chartData} margin={{ top: 5, right: 20, left: isRevenueVisible ? -10 : 20, bottom: 5 }}>
+                    <XAxis dataKey="month" />
+                    <YAxis tickFormatter={value => isRevenueVisible ? formatCurrency(value) : ''} />
+                    <Tooltip
+                        content={<ChartTooltipContent 
+                            formatter={(value, name) => {
+                                if (!isRevenueVisible) return "Oculto";
+                                return formatCurrency(Number(value))
+                            }}
+                        />}
                     />
+                    <Legend content={<ChartLegendContent />} />
                     <Line 
                         type="monotone" 
-                        dataKey="profit" 
-                        name="profit" 
-                        stroke={chartConfig.profit.color} 
+                        dataKey="revenue" 
+                        name="revenue"
+                        stroke="var(--color-revenue)" 
                         strokeWidth={3} 
-                        dot={true}
+                        dot={{ r: 4, fill: "var(--color-revenue)" }}
+                        activeDot={{ r: 6 }}
                     />
-                </>
-              )}
-            </LineChart>
+                </LineChart>
+            ) : (
+                <BarChart data={chartData} margin={{ top: 5, right: 20, left: isRevenueVisible ? -10 : 20, bottom: 5 }}>
+                    <XAxis dataKey="month" />
+                    <YAxis tickFormatter={value => isRevenueVisible ? formatCurrency(value) : ''} />
+                    <Tooltip
+                        content={<ChartTooltipContent 
+                            formatter={(value, name) => {
+                                if (!isRevenueVisible) return "Oculto";
+                                return formatCurrency(Number(value))
+                            }}
+                        />}
+                    />
+                    <Legend content={<ChartLegendContent />} />
+                    <Bar dataKey="revenue" name="revenue" fill="var(--color-revenue)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="expenses" name="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="profit" name="profit" fill="var(--color-profit)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+            )}
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
