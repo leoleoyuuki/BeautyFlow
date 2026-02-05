@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { Line, LineChart, Pie, PieChart as RechartsPieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent, ChartLegendContent, type ChartConfig } from '@/components/ui/chart';
 import { formatCurrency } from '@/lib/utils';
 import { subMonths, format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,8 +18,11 @@ interface RevenueChartProps {
 
 export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueChartProps) {
   const chartData = useMemo(() => {
-    if (!summary) return [];
     const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
+    if (!summary) {
+        return months.map(m => ({ month: format(m, 'MMM', { locale: ptBR }), revenue: 0, expenses: 0, profit: 0 }));
+    }
+
     return months.map(monthDate => {
       const monthKey = format(monthDate, 'yyyy-MM');
       const revenue = summary.monthlyRevenue?.[monthKey] || 0;
@@ -34,8 +37,8 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
     });
   }, [summary]);
 
-  const chartConfig = {
-      revenue: { label: 'Faturamento', color: 'hsl(var(--chart-1))' },
+  const chartConfig: ChartConfig = {
+      revenue: { label: 'Faturamento', color: 'hsl(var(--primary))' },
       expenses: { label: 'Custos', color: 'hsl(var(--destructive))' },
       profit: { label: 'Lucro Líquido', color: 'hsl(var(--chart-3))' },
   }
@@ -48,15 +51,21 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 5, right: 20, left: isRevenueVisible ? -10 : 20, bottom: 5 }}>
+            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <XAxis dataKey="month" />
-                <YAxis tickFormatter={value => isRevenueVisible ? formatCurrency(value) : ''} />
+                <YAxis tickFormatter={value => isRevenueVisible ? new Intl.NumberFormat('pt-BR', { notation: 'compact', style: 'currency', currency: 'BRL' }).format(value) : ''} />
                 <Tooltip
                     content={<ChartTooltipContent 
-                        formatter={(value, name) => {
-                            if (!isRevenueVisible) return "Oculto";
-                            return formatCurrency(Number(value))
-                        }}
+                        formatter={(value, name) => (
+                            <div className="flex w-full items-center justify-between gap-4 min-w-[140px]">
+                                <span className="text-muted-foreground text-xs">
+                                    {chartConfig[name as string]?.label || name}
+                                </span>
+                                <span className="font-mono font-medium">
+                                    {isRevenueVisible ? formatCurrency(Number(value)) : "●●●●"}
+                                </span>
+                            </div>
+                        )}
                     />}
                 />
                 <Legend content={<ChartLegendContent />} />
@@ -103,6 +112,8 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
 interface NewClientsChartProps {
     summary: Summary | null;
 }
+
+import { Bar, BarChart } from 'recharts';
 
 export function NewClientsChart({ summary }: NewClientsChartProps) {
     const chartData = useMemo(() => {
@@ -202,8 +213,6 @@ export function NewClientsChart({ summary }: NewClientsChartProps) {
 interface ExpensesChartProps {
   purchases: MaterialPurchase[] | null;
 }
-
-import { Bar, BarChart } from 'recharts';
 
 export function ExpensesChart({ purchases }: ExpensesChartProps) {
   const chartData = useMemo(() => {
