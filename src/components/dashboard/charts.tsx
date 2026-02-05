@@ -37,12 +37,13 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
   const chartConfig = {
       revenue: { label: 'Faturamento', color: 'hsl(var(--chart-1))' },
       expenses: { label: 'Despesas', color: 'hsl(var(--chart-2))' },
+      profit: { label: 'Lucro', color: 'hsl(var(--chart-3))' },
   }
 
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>{viewMode === 'revenue' ? 'Faturamento Mensal' : 'Receitas vs. Despesas'}</CardTitle>
+        <CardTitle>{viewMode === 'revenue' ? 'Faturamento Mensal' : 'Análise de Lucro Real'}</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
@@ -54,22 +55,37 @@ export function RevenueChart({ isRevenueVisible, summary, viewMode }: RevenueCha
                 content={<ChartTooltipContent 
                     formatter={(value, name) => {
                         if (!isRevenueVisible) return "Oculto";
-                        
-                        if(name === 'profit') {
-                             const profitValue = chartData.find(d => d.profit === value)?.profit;
-                             return profitValue !== undefined ? formatCurrency(profitValue) : formatCurrency(Number(value));
-                        }
-                        
                         return formatCurrency(Number(value))
                     }}
                 />}
                 />
-              <Legend />
-              <Line type="monotone" dataKey="revenue" name="Faturamento" stroke={chartConfig.revenue.color} strokeWidth={2} dot={viewMode === 'profit'}/>
+              <Legend content={<ChartLegendContent />} />
+              <Line 
+                type="monotone" 
+                dataKey="revenue" 
+                name="revenue" 
+                stroke={chartConfig.revenue.color} 
+                strokeWidth={2} 
+                dot={true}
+              />
               {viewMode === 'profit' && (
                 <>
-                    <Line type="monotone" dataKey="expenses" name="Despesas" stroke={chartConfig.expenses.color} strokeWidth={2} />
-                    <Line type="monotone" dataKey="profit" name="Lucro" strokeWidth={0} dot={false} activeDot={false} legendType="none" />
+                    <Line 
+                        type="monotone" 
+                        dataKey="expenses" 
+                        name="expenses" 
+                        stroke={chartConfig.expenses.color} 
+                        strokeWidth={2} 
+                        dot={true}
+                    />
+                    <Line 
+                        type="monotone" 
+                        dataKey="profit" 
+                        name="profit" 
+                        stroke={chartConfig.profit.color} 
+                        strokeWidth={3} 
+                        dot={true}
+                    />
                 </>
               )}
             </LineChart>
@@ -229,5 +245,3 @@ export function ExpensesChart({ purchases }: ExpensesChartProps) {
       </Card>
   )
 }
-
-    
