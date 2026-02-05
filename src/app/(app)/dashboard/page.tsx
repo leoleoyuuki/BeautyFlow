@@ -51,10 +51,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // This effect handles the backfill logic for existing users
-    if (firestore && user && !isLoadingSummary && summary === null) {
-      // If summary is not loading and is null, it means the document doesn't exist.
-      // We trigger the backfill process for this user.
-      backfillSummaryForUser(firestore, user.uid);
+    // We trigger the backfill if the summary is missing or if the monthlyExpenses field is missing (new feature)
+    if (firestore && user && !isLoadingSummary) {
+      const needsBackfill = summary === null || 
+                           summary.monthlyExpenses === undefined || 
+                           summary.totalExpenses === undefined;
+      
+      if (needsBackfill) {
+        backfillSummaryForUser(firestore, user.uid);
+      }
     }
   }, [firestore, user, summary, isLoadingSummary]);
 
